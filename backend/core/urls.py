@@ -28,4 +28,5 @@ urlpatterns = [
     # Endpoints de Módulos (Aplicaciones)
     path('api/pedidos/', include('pedidos.urls')),
     path('api/catalogo/', include('catalogo.urls')), # Descomentar cuando crees las vistas del catálogo
+    path('api/finanzas/', include('finanzas.urls')), # Descomentar cuando crees las vistas de finanzas
 ]
