@@ -1,0 +1,77 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f7fafc;
+  color: #2d3748;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #6b46c1; /* Morado principal */
+  padding: 1rem 2rem;
+  color: white;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  margin-left: 20px;
+  font-weight: bold;
+}
+
+.nav-links a:hover {
+  text-decoration: underline;
+}
+
+.page {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+button {
+  background-color: #6b46c1; /* Botón morado */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #553c9a; /* Morado un poco más oscuro al pasar el mouse */
+}
+
+/* Estilo vertical para el formulario de login */
+form {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 15px !important;
+  max-width: 350px !important;
+  margin: 40px auto !important;
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+form input, 
+form button {
+  width: 100% !important;
+  padding: 12px !important;
+  font-size: 16px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+}
+
+form input:focus {
+  outline: none;
+  border-color: #6b46c1;
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.2);
+}
