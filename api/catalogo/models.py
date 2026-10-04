@@ -1,23 +1,27 @@
-# catalogo/models.py
 from django.db import models
 from django.db.models import CheckConstraint, Q
 from usuarios.models import Proveedor
 
 class Plato(models.Model):
-    # Información básica del producto
+    # Definimos las categorías exactas que espera el frontend
+    CATEGORIAS = (
+        ('platos', 'Platos y Entradas'),
+        ('bebestibles', 'Bebestibles'),
+        ('postres', 'Postres Variados'),
+        ('extras', 'Extras y Salsas'),
+    )
+
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField()
-    
-    # Precio de venta del producto.
     precio = models.IntegerField()
     
-    # Indicador clave para el modelo B2B: True si es de "El Comilón", False si es de terceros.
-    esPropio = models.BooleanField(default=True)
+    # Nuevos campos para sincronizar con React
+    categoria = models.CharField(max_length=20, choices=CATEGORIAS, default='platos')
+    icono = models.CharField(max_length=10, default='', blank=True, help_text="Emoji representativo")
     
-    # Indicador de stock. Evita eliminar registros para no romper el historial de pedidos pasados.
+    esPropio = models.BooleanField(default=True)
     disponible = models.BooleanField(default=True)
     
-    # Vincula el plato a un restaurante externo. Si esPropio=True, este campo queda vacío (null).
     proveedor = models.ForeignKey(
         Proveedor, 
         on_delete=models.CASCADE, 
@@ -27,8 +31,6 @@ class Plato(models.Model):
     )
 
     class Meta:
-        # Restricción a nivel de motor MySQL: Impide insertar precios negativos,
-        # protegiendo el sistema de pérdidas financieras por errores de digitación.
         constraints = [
             CheckConstraint(
                 condition=Q(precio__gte=0),
@@ -38,4 +40,4 @@ class Plato(models.Model):
 
     def __str__(self):
         origen = "Propio" if self.esPropio else f"Proveedor: {self.proveedor.nombre_comercial if self.proveedor else 'Desconocido'}"
-        return f"{self.nombre} - {origen}"
+        return f"[{self.get_categoria_display()}] {self.icono} {self.nombre} - {origen}"

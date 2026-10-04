@@ -1,48 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../CartContext';          // 1. Importas el gancho global
-import CarritoModal from '../components/CarritoModal'; // 2. Importas la ventanita del carrito
+import { useCart } from '../CartContext';          
+import CarritoModal from '../components/CarritoModal'; 
 
 export default function MenuDetallado() {
   const [categoriaActiva, setCategoriaActiva] = useState('platos');
-
-  // 3. Extraemos las funciones y variables globales del carrito
   const { agregarAlPedido, setVerCarrito, totalItems } = useCart();
 
-  // Datos de la carta por categorías
-  const cartaCompleta = {
-    platos: [
-      { id: 1, nombre: 'Empanadas de Pino Fritas (2 unid.)', proveedor: 'Entrada - El Comilón', precio: 3200, desc: 'Crujientes empanadas fritas rellenas de pino tradicional.', icon: '🥟' },
-      { id: 2, nombre: 'Sopaipillas con Pebre Casero', proveedor: 'Entrada - El Comilón', precio: 2500, desc: 'Sopaipillas pasadas o al plato acompañadas de pebre fresco.', icon: '🫓' },
-      { id: 3, nombre: 'Cazuela de Vacuno Tradicional', proveedor: 'El Comilón', precio: 6500, desc: 'Preparación casera con vacuno fresco, zapallo, choclo y papa.', icon: '🍲' },
-      { id: 4, nombre: 'Pastel de Choclo en Greda', proveedor: 'El Comilón', precio: 7000, desc: 'Tradicional receta horneada con pino de carne, pollo y albahaca.', icon: '🥧' },
-      { id: 5, nombre: 'Lomo a lo Pobre Ejecutivo', proveedor: 'El Comilón', precio: 7900, desc: 'Bife tierno con papas fritas caseras, cebolla y dos huevos fritos.', icon: '🥩' },
-      { id: 6, nombre: 'Carbonada Casera con Zapallo', proveedor: 'El Comilón', precio: 5900, desc: 'Sopa espesa de carne picada en cubos con verduras de estación.', icon: '🥘' },
-      { id: 7, nombre: 'Pollo Arvejado con Puré', proveedor: 'El Comilón', precio: 6200, desc: 'Pollo tierno en salsa de arvejitas con puré de papas.', icon: '🍗' },
-      { id: 8, nombre: 'Bowl Veggie de Quínoa', proveedor: 'GreenFood SpA', precio: 6900, desc: 'Quínoa orgánica, falafel crujiente, hummus y tomates cherry.', icon: '🥑' }
-    ],
-    bebestibles: [
-      { id: 101, nombre: 'Jugo Natural del Día (350cc)', proveedor: 'El Comilón', precio: 2200, desc: 'Fruta fresca de la estación (Frambuesa, lúcuma o piña).', icon: '🧃' },
-      { id: 102, nombre: 'Bebida en Lata 350ml', proveedor: 'Proveedores', precio: 1800, desc: 'Coca-Cola, Coca-Cola Zero, Sprite o Fanta.', icon: '🥤' },
-      { id: 103, nombre: 'Agua Mineral sin gas 500ml', proveedor: 'Proveedores', precio: 1500, desc: 'Agua purificada embotellada.', icon: '💧' },
-      { id: 104, nombre: 'Chicha Artesanal (Vaso)', proveedor: 'El Comilón', precio: 2000, desc: 'Bebida tradicional chilena.', icon: '🍷' }
-    ],
-    postres: [
-      { id: 201, nombre: 'Leche Asada Casera', proveedor: 'El Comilón', precio: 2500, desc: 'Receta tradicional con caramelo artesanal.', icon: '🍮' },
-      { id: 202, nombre: 'Mousse de Maracuyá', proveedor: 'GreenFood SpA', precio: 2800, desc: 'Postre frío y cremoso con toque cítrico.', icon: '🍨' },
-      { id: 203, nombre: 'Ensalada de Frutas Frescas', proveedor: 'El Comilón', precio: 2200, desc: 'Mix de frutas de temporada picadas en el día.', icon: '🍓' },
-      { id: 204, nombre: 'Suspiro Limeño Artesanal', proveedor: 'El Comilón', precio: 2900, desc: 'Suave manjar blanco con merengue al oporto.', icon: '🍧' },
-      { id: 205, nombre: 'Panqueque con Manjar (2 unid.)', proveedor: 'El Comilón', precio: 2600, desc: 'Panqueques caseros rellenos de manjar chileno.', icon: '🥞' }
-    ],
-    extras: [
-      { id: 301, nombre: 'Porción de Papas Fritas', proveedor: 'El Comilón', precio: 3000, desc: 'Papas cortadas a mano y crujientes.', icon: '🍟' },
-      { id: 302, nombre: 'Porción de Arroz o Ensalada Chilena', proveedor: 'El Comilón', precio: 2000, desc: 'Acompañamiento extra para tu plato.', icon: '🥗' },
-      { id: 303, nombre: 'Pan Amasado con Pebre (2 unid.)', proveedor: 'El Comilón', precio: 1800, desc: 'Horneado del día.', icon: '🥖' },
-      { id: 304, nombre: 'Porción Extra de Pebre Casero', proveedor: 'El Comilón', precio: 800, desc: 'Pebre fresco y picantito.', icon: '🥣' },
-      { id: 305, nombre: 'Mayonesa Casera (Pocillo)', proveedor: 'El Comilón', precio: 700, desc: 'Mayonesa casera de ajo o tradicional.', icon: '🧄' },
-      { id: 306, nombre: 'Sachet de Ketchup / Mostaza', proveedor: 'Proveedores', precio: 300, desc: 'Salsa adicional para tus papas o platos.', icon: '🍅' }
-    ]
-  };
+  // 1. Estado inicial vacío
+  const [cartaCompleta, setCartaCompleta] = useState({
+    platos: [],
+    bebestibles: [],
+    postres: [],
+    extras: []
+  });
+
+  // 2. Conexión automática con Django
+  useEffect(() => {
+    const obtenerMenu = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/catalogo/'); 
+        
+        if (response.ok) {
+          const datosBackend = await response.json();
+          const menuOrdenado = { platos: [], bebestibles: [], postres: [], extras: [] };
+          
+          datosBackend.forEach((item) => {
+            const platoAdaptado = {
+              id: item.id,
+              nombre: item.nombre,
+              desc: item.descripcion,      
+              precio: item.precio,
+              icon: item.icono || '🍲',    
+              proveedor: item.esPropio ? 'El Comilón' : item.nombre_proveedor
+            };
+
+            if (menuOrdenado[item.categoria]) {
+              menuOrdenado[item.categoria].push(platoAdaptado);
+            }
+          });
+
+          setCartaCompleta(menuOrdenado);
+        }
+      } catch (error) {
+        console.error("Error al conectar con Django:", error);
+      }
+    };
+
+    obtenerMenu();
+  }, []);
 
   return (
     <div style={{ 
@@ -68,7 +74,6 @@ export default function MenuDetallado() {
           <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#2e1065' }}>CARTA EL COMILÓN</h2>
         </div>
 
-        {/* BOTÓN DEL CARRITO */}
         <button 
           onClick={() => setVerCarrito(true)}
           style={{ 
@@ -97,32 +102,34 @@ export default function MenuDetallado() {
           <button onClick={() => setCategoriaActiva('extras')} style={{ padding: '10px 20px', borderRadius: '20px', border: 'none', backgroundColor: categoriaActiva === 'extras' ? '#ffffff' : 'rgba(255,255,255,0.4)', color: '#5b21b6', fontWeight: '800', cursor: 'pointer' }}>🍟 Extras y Salsas</button>
         </div>
 
-        {/* LISTADO DE PRODUCTOS */}
+        {/* LISTADO DE PRODUCTOS DINÁMICO */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-          {cartaCompleta[categoriaActiva].map((item) => (
-            <div key={item.id} style={{ background: '#ffffff', borderRadius: '14px', padding: '20px', boxShadow: '0 8px 20px rgba(46, 16, 101, 0.12)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '2.2rem' }}>{item.icon}</span>
-                  <span style={{ fontSize: '0.7rem', padding: '4px 10px', borderRadius: '12px', backgroundColor: '#f3e8ff', color: '#6b21a8', fontWeight: '700' }}>{item.proveedor}</span>
+          {cartaCompleta[categoriaActiva] && cartaCompleta[categoriaActiva].length > 0 ? (
+            cartaCompleta[categoriaActiva].map((item) => (
+              <div key={item.id} style={{ background: '#ffffff', borderRadius: '14px', padding: '20px', boxShadow: '0 8px 20px rgba(46, 16, 101, 0.12)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '2.2rem' }}>{item.icon}</span>
+                    <span style={{ fontSize: '0.7rem', padding: '4px 10px', borderRadius: '12px', backgroundColor: '#f3e8ff', color: '#6b21a8', fontWeight: '700' }}>{item.proveedor}</span>
+                  </div>
+                  <h3 style={{ color: '#4c1d95', margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: '800' }}>{item.nombre}</h3>
+                  <p style={{ color: '#4b5563', fontSize: '0.85rem', marginBottom: '15px' }}>{item.desc}</p>
                 </div>
-                <h3 style={{ color: '#4c1d95', margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: '800' }}>{item.nombre}</h3>
-                <p style={{ color: '#4b5563', fontSize: '0.85rem', marginBottom: '15px' }}>{item.desc}</p>
+                <div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#7c3aed', marginBottom: '12px' }}>${item.precio.toLocaleString('es-CL')}</div>
+                  <button onClick={() => agregarAlPedido(item)} style={{ width: '100%', padding: '10px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
+                    Añadir al Pedido
+                  </button>
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#7c3aed', marginBottom: '12px' }}>${item.precio.toLocaleString('es-CL')}</div>
-                <button onClick={() => agregarAlPedido(item)} style={{ width: '100%', padding: '10px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
-                  Añadir al Pedido
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+             <p style={{ textAlign: 'center', color: '#4c1d95', width: '100%', fontWeight: '600' }}>Aún no hay productos en esta categoría.</p>
+          )}
         </div>
       </main>
 
-      {/* 4. MODAL DEL CARRITO GLOBAL AL FINAL */}
       <CarritoModal />
-
     </div>
   );
 }
