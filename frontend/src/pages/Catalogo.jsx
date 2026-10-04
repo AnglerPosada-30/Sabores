@@ -63,7 +63,7 @@ export default function Catalogo() {
         </div>
 
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center', fontSize: '0.9rem' }}>
-          <Link to="/" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Menú</Link>
+          <Link to="/menu" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Menú</Link>
           <Link to="/login" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Iniciar Sesión</Link>
           <Link to="/registro" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Regístrate aquí</Link>
           
