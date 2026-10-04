@@ -4,19 +4,22 @@ import Catalogo from './pages/Catalogo';
 import Login from './pages/Login';
 import Pedidos from './pages/Pedidos';
 import Registro from './pages/Registro';
-import MenuDetallado from './pages/MenuDetallado'; // 1. Importa tu menú detallado
+import MenuDetallado from './pages/MenuDetallado';
+import { CartProvider } from './CartContext'; // 1. Importa el proveedor del carrito
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Catalogo />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/pedidos" element={<Pedidos />} />
-        <Route path="/registro" element={<Registro />} />
-        <Route path="/menu" element={<MenuDetallado />} /> {/* 2. Agrega esta ruta */}
-      </Routes>
-    </Router>
+    <CartProvider> {/* 2. Envuelve todo el Router para que el carrito sea global */}
+      <Router>
+        <Routes>
+          <Route path="/" element={<Catalogo />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/registro" element={<Registro />} />
+          <Route path="/menu" element={<MenuDetallado />} />
+        </Routes>
+      </Router>
+    </CartProvider>
   );
 }
 

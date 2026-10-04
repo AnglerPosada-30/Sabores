@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useCart } from '../CartContext';          // 1. Importas el gancho global
+import CarritoModal from '../components/CarritoModal'; // 2. Importas la ventanita del carrito
 
 export default function Catalogo() {
-  const [carrito, setCarrito] = useState([]);
   const [filtro, setFiltro] = useState('todos');
+
+  // 3. Extraemos las funciones y variables globales del carrito
+  const { agregarAlPedido, setVerCarrito, totalItems } = useCart();
 
   const platosMenu = [
     { id: 1, nombre: 'Cazuela de Vacuno Tradicional', tipo: 'propio', proveedor: 'El Comilón (Local)', precio: 6500, desc: 'Preparación casera con vacuno fresco, zapallo, choclo y papa.', icon: '🍲' },
@@ -18,11 +22,6 @@ export default function Catalogo() {
   ];
 
   const platosFiltrados = filtro === 'todos' ? platosMenu : platosMenu.filter(p => p.tipo === filtro);
-
-  const agregarAlPedido = (plato) => {
-    setCarrito([...carrito, plato]);
-    alert(`¡"${plato.nombre}" agregado a tu pedido!`);
-  };
 
   return (
     <div style={{ 
@@ -67,9 +66,17 @@ export default function Catalogo() {
           <Link to="/login" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Iniciar Sesión</Link>
           <Link to="/registro" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Regístrate aquí</Link>
           
-          <div style={{ backgroundColor: '#ffffff', padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', color: '#5b21b6', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-            🛒 <span>Carrito ({carrito.length})</span>
-          </div>
+          {/* BOTÓN DEL CARRITO INTERACTIVO */}
+          <button 
+            onClick={() => setVerCarrito(true)}
+            style={{ 
+              backgroundColor: '#ffffff', padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', 
+              fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', color: '#5b21b6', 
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer' 
+            }}
+          >
+            🛒 <span>Carrito ({totalItems})</span>
+          </button>
         </div>
       </nav>
 
@@ -246,6 +253,10 @@ export default function Catalogo() {
         </div>
 
       </main>
+
+      {/* 4. MODAL DEL CARRITO GLOBAL AL FINAL */}
+      <CarritoModal />
+
     </div>
   );
 }
