@@ -6,14 +6,43 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (usuario.trim() !== '' && password.trim() !== '') {
-      navigate('/catalogo');
+      try {
+        // Hacemos la petición real a nuestro backend de Django (Nos aseguramos de que el puerto sea 8000)
+        const response = await fetch('http://localhost:8000/api/login/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: usuario,  // Django espera 'username', aunque el campo se llame 'usuario'
+            password: password
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Guardamos los tokens (Access y Refresh) en el navegador del usuario
+          localStorage.setItem('access_token', data.access);
+          localStorage.setItem('refresh_token', data.refresh);
+          
+          alert('¡Inicio de sesión exitoso!');
+          navigate('/catalogo');
+        } else {
+          // Si Django responde con un 401 (Credenciales inválidas)
+          alert('Credenciales incorrectas. Verifica tu usuario y contraseña.');
+        }
+      } catch (error) {
+        console.error("Error al conectar con la API:", error);
+        alert('Error al conectar con el servidor. Inténtalo más tarde.');
+      }
     } else {
       alert('Por favor, ingresa tu usuario y contraseña');
     }
   };
+
 
   return (
     <div style={{

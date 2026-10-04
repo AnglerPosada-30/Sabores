@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'mysql.connector.django',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
@@ -157,3 +157,5 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated', # Por defecto, todo requiere login
     )
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

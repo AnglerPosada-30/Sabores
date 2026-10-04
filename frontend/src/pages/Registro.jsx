@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Registro() {
+  /* 
+   * ESTADO DEL COMPONENTE (STATE)
+   * Aquí definimos la estructura de datos que almacenará en tiempo real 
+   * lo que el usuario escribe en los inputs. 
+   * Las llaves coinciden exactamente con lo que enviaremos a nuestro backend en Django.
+   */
   const [formData, setFormData] = useState({
     nombre: '',
     rut: '',
@@ -16,8 +22,15 @@ export default function Registro() {
     confirmPassword: ''
   });
 
+  // Hook de React Router para redirigir al usuario a otras pantallas por código
   const navigate = useNavigate();
 
+  /*
+   * FUNCIÓN MANEJADORA DE CAMBIOS (handleChange)
+   * Se ejecuta cada vez que el usuario presiona una tecla en cualquier input.
+   * Utiliza "desestructuración" (...formData) para mantener los datos anteriores 
+   * y solo actualiza el campo específico (e.target.name) que está siendo modificado.
+   */
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -25,37 +38,91 @@ export default function Registro() {
     });
   };
 
-  const handleRegistro = (e) => {
+  /*
+   * FUNCIÓN PRINCIPAL DE ENVÍO (handleRegistro)
+   * Es asíncrona (async) porque debe esperar la respuesta del servidor a través de Internet/Red local.
+   */
+  const handleRegistro = async (e) => {
+    // Evita que el navegador recargue la página por defecto al hacer submit del formulario
     e.preventDefault();
     
-    // Validar campos obligatorios
+    /* 
+     * 1. VALIDACIONES FRONTEND (Primera capa de defensa)
+     * Verificamos que no falten datos antes de gastar recursos haciendo una petición a la API.
+     */
     const camposObligatorios = ['nombre', 'rut', 'email', 'telefono', 'direccion', 'comuna', 'ciudad', 'password', 'confirmPassword'];
     for (let key of camposObligatorios) {
       if (!formData[key].trim()) {
         alert('Por favor, completa todos los campos obligatorios.');
-        return;
+        return; // Detiene la ejecución si falta un dato
       }
     }
 
+    // 2. Validación de seguridad básica: coincidencia de contraseñas
     if (formData.password !== formData.confirmPassword) {
       alert('Las contraseñas no coinciden. Por favor, revísalas.');
       return;
     }
 
-    // Lógica diferenciada si ingresó Empresa / Convenio
-    if (formData.empresa.trim() !== '') {
-      alert(
-        `¡Registro exitoso, ${formData.nombre}!\n\n` +
-        `Has registrado convenio con la empresa "${formData.empresa}".\n` +
-        `Tu perfil ha quedado en **estado de revisión** para validar el beneficio corporativo. Te notificaremos a tu correo (${formData.email}) cuando esté activo.`
-      );
-      navigate('/login'); // Opcional: mandarlo al login o a una pantalla de espera
-    } else {
-      alert(`¡Registro exitoso! Bienvenido/a a El Comilón, ${formData.nombre}.`);
-      navigate('/catalogo');
+    /*
+     * 3. COMUNICACIÓN CON EL BACKEND (La integración real)
+     * Usamos fetch para enviar los datos a la URL de nuestra API de Django.
+     */
+    try {
+      const response = await fetch('http://localhost:8000/api/usuarios/registro/', {
+        method: 'POST', // Indicamos que vamos a crear un nuevo recurso
+        headers: {
+          'Content-Type': 'application/json', // Le decimos a Django que lea esto como un JSON puro
+        },
+        // Transformamos nuestro estado de React a texto JSON para enviarlo por la red
+        body: JSON.stringify({
+          username: formData.rut,
+          rut: formData.rut,
+          email: formData.email,
+          telefono: formData.telefono,
+          password: formData.password,
+          nombre: formData.nombre,
+          direccion: formData.direccion,
+          comuna: formData.comuna,
+          ciudad: formData.ciudad,
+          empresa: formData.empresa
+        })
+      });
+
+      /*
+       * 4. MANEJO DE LA RESPUESTA DE DJANGO
+       * Evaluamos el código HTTP que nos devuelve el servidor.
+       */
+      if (response.ok) {
+        // Si el código es 200 o 201 (Creado exitosamente)
+        if (formData.empresa.trim() !== '') {
+          // Lógica de negocio: Mensaje diferenciado si es un perfil corporativo (convenio)
+          alert(`¡Registro exitoso!\nHas registrado convenio con "${formData.empresa}". Tu perfil está en revisión.`);
+        } else {
+          // Mensaje para clientes regulares
+          alert(`¡Registro exitoso! Bienvenido/a a El Comilón, ${formData.nombre}.`);
+        }
+        // Redirigimos al usuario al Login para que inicie sesión y obtenga su token JWT
+        navigate('/login'); 
+      } else {
+        // Si Django rechaza la petición (ej. error 400), capturamos el mensaje exacto
+        // Esto es útil si el RUT falla la validación del Módulo 11 en el backend o si el correo ya existe
+        const errorData = await response.json();
+        alert(`Error en el registro: ${JSON.stringify(errorData)}`);
+      }
+    } catch (error) {
+      // Capturamos errores de red (ej. si el servidor de Django está apagado)
+      console.error("Error al registrar:", error);
+      alert('Error de conexión con el servidor. Verifica que el backend esté corriendo.');
     }
   };
 
+  /*
+   * RENDERIZADO DE LA INTERFAZ
+   * Aquí se dibuja el formulario. Cada input está "controlado" por React, 
+   * ya que su valor (value) está atado al estado (formData) 
+   * y su evento (onChange) ejecuta nuestra función (handleChange).
+   */
   return (
     <div style={{
       minHeight: '100vh',
@@ -94,6 +161,7 @@ export default function Registro() {
           Registro de Usuario
         </h2>
         
+        {/* onSubmit intercepta el "enter" o el clic en el botón submit y ejecuta nuestra lógica */}
         <form onSubmit={handleRegistro} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
           <div>
@@ -102,7 +170,7 @@ export default function Registro() {
             </label>
             <input 
               type="text" 
-              name="nombre"
+              name="nombre" /* El atributo name debe ser igual a la llave en el useState */
               placeholder="Ej: Juan Pérez" 
               value={formData.nombre}
               onChange={handleChange}
