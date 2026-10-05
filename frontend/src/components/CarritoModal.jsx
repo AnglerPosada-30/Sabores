@@ -1,8 +1,12 @@
 import React from 'react';
 import { useCart } from '../CartContext';
+import { useNavigate } from 'react-router-dom'; // Importamos el hook para cambiar de página
 
 export default function CarritoModal() {
   const { carrito, verCarrito, setVerCarrito, agregarAlPedido, disminuirOQuitar, totalPagar, setCarrito } = useCart();
+  
+  // Inicializamos el hook de navegación para poder redirigir al usuario
+  const navigate = useNavigate(); 
 
   if (!verCarrito) return null;
 
@@ -17,7 +21,7 @@ export default function CarritoModal() {
       return;
     }
 
-    // 2. Adaptamos los productos del carrito al JSON que espera tu vista ProcesarPedidoView
+    // 2. Adaptamos los productos del carrito al JSON que espera tu vista ProcesarPedidoView en Django
     const itemsParaBackend = carrito.map((item) => ({
       plato_id: item.id,
       cantidad: item.cantidad
@@ -44,11 +48,23 @@ export default function CarritoModal() {
 
       if (response.ok) {
         // 5. ¡Camino Feliz! La base de datos guardó el pedido
-        alert(`¡Pedido realizado con éxito! Gracias por preferir El Comilón.\nTu número de orden es: #${data.pedido_id}`);
-        setCarrito([]); // Vaciamos el carrito
-        setVerCarrito(false); // Cerramos la ventana
+        
+        setCarrito([]); // Vaciamos el carrito local
+        setVerCarrito(false); // Cerramos la ventana del carrito
+        
+        // 6. Redirigimos a la pantalla del Comprobante.
+        // El atributo 'state' nos permite enviar datos ocultos a la siguiente ruta
+        // sin exponerlos en la URL, para que la boleta sepa qué mostrar.
+        navigate('/comprobante', { 
+          state: { 
+            pedido_id: data.pedido_id, 
+            total: totalPagar, 
+            items: carrito 
+          } 
+        });
+
       } else {
-        // 6. Si el backend rechazó la compra (ej. fondos insuficientes simulados)
+        // 7. Si el backend rechazó la compra (ej. fondos insuficientes simulados)
         alert("Error al procesar: " + (data.error || "Intenta nuevamente."));
       }
     } catch (error) {
