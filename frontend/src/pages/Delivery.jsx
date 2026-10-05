@@ -70,42 +70,55 @@ const formatoPrecio = (precio) =>
     maximumFractionDigits: 0,
   }).format(precio);
 
+function DeliverySidebar({ currentPage }) {
+  return (
+    <aside className="delivery-sidebar">
+      <Link className="delivery-brand" to="/">
+        <span className="delivery-brand-mark" aria-hidden="true">E</span>
+        <span>
+          <strong>EL COMILÓN</strong>
+          <small>Panel de reparto</small>
+        </span>
+      </Link>
+
+      <p className="delivery-nav-label">MENÚ</p>
+      <nav className="delivery-nav" aria-label="Navegación principal">
+        <Link to="/" className="delivery-nav-link">
+          <span aria-hidden="true">⌂</span> Inicio
+        </Link>
+        <Link
+          to="/delivery/pedidos"
+          className={`delivery-nav-link${currentPage === 'pedidos' ? ' is-active' : ''}`}
+          aria-current={currentPage === 'pedidos' ? 'page' : undefined}
+        >
+          <span aria-hidden="true">▤</span> Pedidos
+        </Link>
+        <Link
+          to="/delivery"
+          className={`delivery-nav-link${currentPage === 'perfil' ? ' is-active' : ''}`}
+          aria-current={currentPage === 'perfil' ? 'page' : undefined}
+        >
+          <span aria-hidden="true">◉</span> Mi perfil
+        </Link>
+      </nav>
+
+      <div className="delivery-sidebar-user">
+        <span className="delivery-avatar delivery-avatar-small" aria-hidden="true">
+          {repartidor.iniciales}
+        </span>
+        <span>
+          <strong>{repartidor.nombre}</strong>
+          <small>{repartidor.rol}</small>
+        </span>
+      </div>
+    </aside>
+  );
+}
+
 function Delivery() {
   return (
     <div className="delivery-page">
-      <aside className="delivery-sidebar">
-        <Link className="delivery-brand" to="/">
-          <span className="delivery-brand-mark" aria-hidden="true">E</span>
-          <span>
-            <strong>EL COMILÓN</strong>
-            <small>Panel de reparto</small>
-          </span>
-        </Link>
-
-        <p className="delivery-nav-label">MENÚ</p>
-        <nav className="delivery-nav" aria-label="Navegación principal">
-          <Link to="/" className="delivery-nav-link">
-            <span aria-hidden="true">⌂</span> Inicio
-          </Link>
-          <Link to="/pedidos" className="delivery-nav-link">
-            <span aria-hidden="true">▤</span> Pedidos
-          </Link>
-          <Link to="/delivery" className="delivery-nav-link is-active" aria-current="page">
-            <span aria-hidden="true">◉</span> Mi perfil
-          </Link>
-        </nav>
-
-        <div className="delivery-sidebar-user">
-          <span className="delivery-avatar delivery-avatar-small" aria-hidden="true">
-            {repartidor.iniciales}
-          </span>
-          <span>
-            <strong>{repartidor.nombre}</strong>
-            <small>{repartidor.rol}</small>
-          </span>
-        </div>
-      </aside>
-
+      <DeliverySidebar currentPage="perfil" />
       <main className="delivery-main">
         <header className="delivery-topbar">
           <div>
@@ -209,6 +222,50 @@ function Delivery() {
               <h2 id="delivery-history-title">Pedidos transportados</h2>
             </div>
             <span className="delivery-history-total">Últimas entregas</span>
+          </div>
+          <div className="delivery-history-list">
+            {pedidosCompletados.map((pedido) => (
+              <article className="delivery-history-row" key={pedido.numero}>
+                <span className="delivery-history-check" aria-hidden="true">✓</span>
+                <div className="delivery-history-customer">
+                  <strong>{pedido.cliente}</strong>
+                  <small>{pedido.numero} <span>·</span> {pedido.resumen}</small>
+                </div>
+                <span className="delivery-history-date">{pedido.fecha}</span>
+                <strong className="delivery-history-price">{formatoPrecio(pedido.total)}</strong>
+                <span className="delivery-delivered">Entregado</span>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <p className="delivery-demo-note">
+          Información de ejemplo. Los datos se conectarán al backend en una siguiente etapa.
+        </p>
+      </main>
+    </div>
+  );
+}
+
+export function PedidosDelivery() {
+  return (
+    <div className="delivery-page">
+      <DeliverySidebar currentPage="pedidos" />
+      <main className="delivery-main">
+        <header className="delivery-topbar">
+          <div>
+            <span className="delivery-eyebrow">HISTORIAL DEL REPARTIDOR</span>
+            <h1>Pedidos completados</h1>
+          </div>
+          <span className="delivery-count">{pedidosCompletados.length} entregas</span>
+        </header>
+
+        <section className="delivery-history delivery-completed-page" aria-labelledby="delivery-history-title">
+          <div className="delivery-section-heading">
+            <div>
+              <span className="delivery-eyebrow">ENTREGAS REALIZADAS</span>
+              <h2 id="delivery-history-title">Pedidos transportados</h2>
+            </div>
           </div>
           <div className="delivery-history-list">
             {pedidosCompletados.map((pedido) => (
