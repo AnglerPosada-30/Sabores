@@ -4,6 +4,7 @@ import Catalogo from './pages/Catalogo';
 import Login from './pages/Login';
 import Pedidos from './pages/Pedidos';
 import Registro from './pages/Registro';
+import Comprobante from './pages/Comprobante';
 import MenuDetallado from './pages/MenuDetallado';
 import Delivery, { PedidosDelivery } from './pages/Delivery';
 import { CartProvider } from './CartContext'; // 1. Importa el proveedor del carrito
@@ -19,6 +20,7 @@ function App() {
           <Route path="/delivery" element={<Delivery />} />
           <Route path="/delivery/pedidos" element={<PedidosDelivery />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/comprobante" element={<Comprobante />} />
           <Route path="/menu" element={<MenuDetallado />} />
         </Routes>
       </Router>
