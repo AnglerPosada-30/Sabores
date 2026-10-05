@@ -8,6 +8,8 @@ import Comprobante from './pages/Comprobante';
 import MenuDetallado from './pages/MenuDetallado';
 import Delivery, { PedidosDelivery } from './pages/Delivery';
 import { CartProvider } from './CartContext'; // 1. Importa el proveedor del carrito
+import AdminLogin from './pages/AdminLogin';
+import AdminPanel from './pages/AdminPanel';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
           <Route path="/registro" element={<Registro />} />
           <Route path="/comprobante" element={<Comprobante />} />
           <Route path="/menu" element={<MenuDetallado />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Routes>
       </Router>
     </CartProvider>
