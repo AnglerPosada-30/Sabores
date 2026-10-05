@@ -6,6 +6,7 @@ import Pedidos from './pages/Pedidos';
 import Registro from './pages/Registro';
 import MenuDetallado from './pages/MenuDetallado';
 import { CartProvider } from './CartContext'; // 1. Importa el proveedor del carrito
+import Checkout from './pages/Checkout';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/menu" element={<MenuDetallado />} />
+          <Route path="/checkout" element={<Checkout />} />
         </Routes>
       </Router>
     </CartProvider>
