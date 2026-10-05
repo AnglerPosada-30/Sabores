@@ -1,54 +1,46 @@
 import os
 import django
 
-# 1. Configurar el entorno de Django antes de importar los modelos
+# Configurar el entorno para que Python reconozca tu proyecto Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 from catalogo.models import Plato
 
 def poblar_bd():
-    # Lista de diccionarios con los platos que teníamos en React
     platos_demo = [
-        # Categoría: Platos
-        {'nombre': 'Cazuela de Vacuno Tradicional', 'descripcion': 'Preparación casera con vacuno fresco, zapallo, choclo y papa.', 'precio': 6500, 'categoria': 'platos', 'icono': '🍲', 'esPropio': True},
-        {'nombre': 'Pastel de Choclo en Greda', 'descripcion': 'Tradicional receta horneada con pino de carne, pollo y albahaca.', 'precio': 7000, 'categoria': 'platos', 'icono': '🥧', 'esPropio': True},
-        {'nombre': 'Lomo a lo Pobre Ejecutivo', 'descripcion': 'Bife tierno con papas fritas caseras, cebolla y dos huevos fritos.', 'precio': 7900, 'categoria': 'platos', 'icono': '🥩', 'esPropio': True},
+        # Platos
+        {'nombre': 'Cazuela de Vacuno Tradicional', 'desc': 'Preparación casera con vacuno fresco, zapallo, choclo y papa.', 'precio': 6500, 'cat': 'platos', 'icono': '🍲'},
+        {'nombre': 'Pastel de Choclo en Greda', 'desc': 'Tradicional receta horneada con pino de carne, pollo y albahaca.', 'precio': 7000, 'cat': 'platos', 'icono': '🥧'},
+        {'nombre': 'Lomo a lo Pobre Ejecutivo', 'desc': 'Bife tierno con papas fritas caseras, cebolla y dos huevos fritos.', 'precio': 8500, 'cat': 'platos', 'icono': '🥩'},
         
-        # Categoría: Bebestibles
-        {'nombre': 'Jugo Natural del Día (350cc)', 'descripcion': 'Fruta fresca de la estación (Frambuesa, lúcuma o piña).', 'precio': 2200, 'categoria': 'bebestibles', 'icono': '🧃', 'esPropio': True},
-        {'nombre': 'Bebida en Lata 350ml', 'descripcion': 'Coca-Cola, Coca-Cola Zero, Sprite o Fanta.', 'precio': 1800, 'categoria': 'bebestibles', 'icono': '🥤', 'esPropio': False},
+        # Bebestibles
+        {'nombre': 'Jugo Natural del Día (500cc)', 'desc': 'Frambuesa, lúcuma o piña.', 'precio': 2500, 'cat': 'bebestibles', 'icono': '🧃'},
+        {'nombre': 'Bebida en Lata 350ml', 'desc': 'Coca-Cola, Sprite o Fanta.', 'precio': 1500, 'cat': 'bebestibles', 'icono': '🥤'},
         
-        # Categoría: Postres
-        {'nombre': 'Leche Asada Casera', 'descripcion': 'Receta tradicional con caramelo artesanal.', 'precio': 2500, 'categoria': 'postres', 'icono': '🍮', 'esPropio': True},
-        {'nombre': 'Panqueque con Manjar (2 unid.)', 'descripcion': 'Panqueques caseros rellenos de manjar chileno.', 'precio': 2600, 'categoria': 'postres', 'icono': '🥞', 'esPropio': True},
+        # Postres
+        {'nombre': 'Leche Asada Casera', 'desc': 'Receta tradicional con caramelo artesanal.', 'precio': 2200, 'cat': 'postres', 'icono': '🍮'},
+        {'nombre': 'Panqueque con Manjar (2 unid.)', 'desc': 'Panqueques caseros rellenos de manjar.', 'precio': 2600, 'cat': 'postres', 'icono': '🥞'},
         
-        # Categoría: Extras
-        {'nombre': 'Porción de Papas Fritas', 'descripcion': 'Papas cortadas a mano y crujientes.', 'precio': 3000, 'categoria': 'extras', 'icono': '🍟', 'esPropio': True},
-        {'nombre': 'Sopaipillas con Pebre Casero', 'descripcion': 'Sopaipillas pasadas o al plato acompañadas de pebre fresco.', 'precio': 2500, 'categoria': 'extras', 'icono': '🫓', 'esPropio': True},
+        # Extras
+        {'nombre': 'Porción de Papas Fritas', 'desc': 'Papas cortadas a mano y crujientes.', 'precio': 3000, 'cat': 'extras', 'icono': '🍟'},
+        {'nombre': 'Sopaipillas con Pebre (3 unid.)', 'desc': 'Sopaipillas pasadas o al plato con pebre fresco.', 'precio': 1500, 'cat': 'extras', 'icono': '🫓'},
     ]
 
-    print("Iniciando carga de platos en MySQL...")
-    
-    # Recorremos la lista y creamos los registros
+    print("Iniciando carga rápida de platos...")
     for p in platos_demo:
-        # get_or_create evita que se dupliquen si corres el script dos veces
-        obj, created = Plato.objects.get_or_create(
+        # get_or_create inserta el plato solo si no existe ya uno con ese nombre
+        Plato.objects.get_or_create(
             nombre=p['nombre'],
             defaults={
-                'descripcion': p['descripcion'],
+                'descripcion': p['desc'],
                 'precio': p['precio'],
-                'categoria': p['categoria'],
+                'categoria': p['cat'],
                 'icono': p['icono'],
-                'esPropio': p['esPropio']
+                'esPropio': True
             }
         )
-        if created:
-            print(f"✅ Agregado: {p['nombre']}")
-        else:
-            print(f"⏩ Ya existía: {p['nombre']}")
-
-    print("¡Base de datos poblada con éxito!")
+    print("¡Catálogo poblado con éxito en MySQL!")
 
 if __name__ == '__main__':
     poblar_bd()

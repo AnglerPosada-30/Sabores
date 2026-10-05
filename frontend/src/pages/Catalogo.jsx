@@ -65,6 +65,34 @@ export default function Catalogo() {
           <Link to="/menu" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Menú</Link>
           <Link to="/login" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Iniciar Sesión</Link>
           <Link to="/registro" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Regístrate aquí</Link>
+          <Link
+            to="/admin/login"
+            style={{
+              padding: '7px 13px',
+              borderRadius: '20px',
+              backgroundColor: '#2e1065',
+              color: '#ffffff',
+              textDecoration: 'none',
+              fontWeight: '700',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Administración
+          </Link>
+          <Link
+            to="/delivery"
+            style={{
+              padding: '7px 13px',
+              borderRadius: '20px',
+              backgroundColor: '#2e6b4f',
+              color: '#ffffff',
+              textDecoration: 'none',
+              fontWeight: '700',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Panel Delivery
+          </Link>
           
           {/* BOTÓN DEL CARRITO INTERACTIVO */}
           <button 

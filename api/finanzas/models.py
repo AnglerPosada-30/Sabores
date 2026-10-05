@@ -3,14 +3,14 @@ from django.db.models import CheckConstraint, Q  # Importaciones nuevas para las
 from usuarios.models import PerfilCliente
 
 class Cuenta(models.Model):
-    # Atributo que almacena el dinero disponible financiado por las empresas[cite: 1]. 
+    # Atributo que almacena el dinero disponible financiado por las empresas. 
     # Por defecto inicia en 0.
     saldoDisponible = models.IntegerField(default=0)
     
     # Fecha del último movimiento. 'auto_now=True' actualiza la fecha automáticamente cada vez que el registro se guarda o modifica.
     fechaUltimoAbono = models.DateField(auto_now=True)
     
-    # Relación de composición (Uno a Uno) con el ClienteRegistrado[cite: 1].
+    # Relación de composición (Uno a Uno) con el ClienteRegistrado.
     # on_delete=models.CASCADE asegura que si se elimina el cliente, su cuenta financiera también se destruya.
     cliente = models.OneToOneField(
         PerfilCliente, 
@@ -19,7 +19,7 @@ class Cuenta(models.Model):
     )
 
     class Meta:
-        # Aquí definimos las restricciones que se aplicarán directamente en el motor relacional (MySQL)[cite: 1].
+        # Aquí definimos las restricciones que se aplicarán directamente en el motor relacional (MySQL).
         constraints = [
             CheckConstraint(
                 # Obliga a MySQL a rechazar cualquier intento de guardar un número menor a 0.
@@ -53,4 +53,4 @@ class Cuenta(models.Model):
 
     def __str__(self):
         # Define cómo se leerá este objeto en el panel de administración de Django.
-        return f"Cuenta de: {self.cliente.usuario.username} - Saldo: ${self.saldoDisponible}"
+        return f"Cuenta de: {self.cliente.username} - Saldo: ${self.saldoDisponible}"
