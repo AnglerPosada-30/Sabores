@@ -29,7 +29,7 @@ export default function Login() {
           localStorage.setItem('refresh_token', data.refresh);
           
           alert('¡Inicio de sesión exitoso!');
-          navigate('/catalogo');
+          navigate('/menu'); // Redirigimos al menú principal
         } else {
           // Si Django responde con un 401 (Credenciales inválidas)
           alert('Credenciales incorrectas. Verifica tu usuario y contraseña.');

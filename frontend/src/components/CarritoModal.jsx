@@ -6,11 +6,55 @@ export default function CarritoModal() {
 
   if (!verCarrito) return null;
 
-  const finalizarCompra = () => {
+  // Transformamos finalizarCompra en una función asíncrona real
+  const finalizarCompra = async () => {
     if (carrito.length === 0) return;
-    alert('¡Pedido realizado con éxito! Gracias por preferir El Comilón.');
-    setCarrito([]);
-    setVerCarrito(false);
+
+    // 1. Verificamos la seguridad: ¿El usuario está logueado?
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      alert("Debes iniciar sesión para poder confirmar tu pedido.");
+      return;
+    }
+
+    // 2. Adaptamos los productos del carrito al JSON que espera tu vista ProcesarPedidoView
+    const itemsParaBackend = carrito.map((item) => ({
+      plato_id: item.id,
+      cantidad: item.cantidad
+    }));
+
+    // 3. Preparamos el paquete de datos
+    const payload = {
+      items: itemsParaBackend,
+      metodo_pago: 'TARJETA' // Simulando el método de pago por ahora
+    };
+
+    try {
+      // 4. Disparamos la orden hacia Django
+      const response = await fetch('http://localhost:8000/api/pedidos/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Aquí enviamos el pase de seguridad
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 5. ¡Camino Feliz! La base de datos guardó el pedido
+        alert(`¡Pedido realizado con éxito! Gracias por preferir El Comilón.\nTu número de orden es: #${data.pedido_id}`);
+        setCarrito([]); // Vaciamos el carrito
+        setVerCarrito(false); // Cerramos la ventana
+      } else {
+        // 6. Si el backend rechazó la compra (ej. fondos insuficientes simulados)
+        alert("Error al procesar: " + (data.error || "Intenta nuevamente."));
+      }
+    } catch (error) {
+      console.error("Error de conexión con el servidor:", error);
+      alert("Hubo un problema al conectar con el servidor. Revisa tu conexión.");
+    }
   };
 
   return (
