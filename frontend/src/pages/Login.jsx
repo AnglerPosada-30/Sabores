@@ -60,14 +60,14 @@ export default function Login() {
           }
           
         } else {
-          alert('Credenciales incorrectas. Verifica tu usuario y contraseña.');
+          alert('Credenciales incorrectas. Verifica tu RUT y contraseña.');
         }
       } catch (error) {
         console.error("Error al conectar con la API:", error);
         alert('Error al conectar con el servidor. Inténtalo más tarde.');
       }
     } else {
-      alert('Por favor, ingresa tu usuario y contraseña');
+      alert('Por favor, ingresa tu RUT y contraseña');
     }
   };
 
@@ -111,11 +111,11 @@ export default function Login() {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', color: '#4c1d95', fontWeight: '700', fontSize: '0.9rem' }}>
-              Usuario:
+              RUT:
             </label>
             <input 
               type="text" 
-              placeholder="Ingresa tu usuario" 
+              placeholder="Ingresa tu RUT" 
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               style={{ 
