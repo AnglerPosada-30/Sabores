@@ -15,17 +15,20 @@ export default function Checkout() {
   const tipoClienteActual = localStorage.getItem('tipoCliente') || 'normal'; 
   const saldoCorporativo = parseFloat(localStorage.getItem('saldoCorporativo') || '0');
   
+  // El usuario ahora puede cambiar libremente su método de pago, iniciamos por defecto con el que le corresponda
   const [metodoPago, setMetodoPago] = useState(tipoClienteActual === 'empresa' ? 'CORPORATIVO' : 'TARJETA');
 
   const totalCarrito = itemsCarrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
-  // Lógica de negocio: Validamos si le alcanza el dinero
-  const saldoInsuficiente = tipoClienteActual === 'empresa' && totalCarrito > saldoCorporativo;
+  // LÓGICA ACTUALIZADA: 
+  // Solo bloqueamos la compra si el usuario ELIGE explícitamente pagar con convenio y no le alcanza.
+  // Si elige tarjeta, esta variable será falsa y el botón de pagar se habilitará automáticamente.
+  const saldoInsuficiente = tipoClienteActual === 'empresa' && metodoPago === 'CORPORATIVO' && totalCarrito > saldoCorporativo;
   const botonDeshabilitado = itemsCarrito.length === 0 || saldoInsuficiente;
 
   const handleSubmitPedido = async (e) => {
     e.preventDefault();
-    if (saldoInsuficiente) return; // Doble seguridad
+    if (saldoInsuficiente) return; 
 
     const itemsPedido = itemsCarrito.map(item => ({
       plato_id: item.id, 
@@ -37,7 +40,7 @@ export default function Checkout() {
       total: totalCarrito,
       observaciones: notas,
       tipo_entrega: tipoEntrega,
-      metodo_pago: metodoPago,
+      metodo_pago: metodoPago, // Aquí enviamos la opción que el cliente haya seleccionado
       items: itemsPedido 
     };
 
@@ -66,8 +69,8 @@ export default function Checkout() {
           }))
         };
 
-        // Si es empresa, actualizamos el saldo en el frontend restando lo que gastó
-        if (tipoClienteActual === 'empresa') {
+        // Solo descontamos el saldo visual si realmente completó la compra usando el convenio
+        if (tipoClienteActual === 'empresa' && metodoPago === 'CORPORATIVO') {
           const nuevoSaldo = saldoCorporativo - totalCarrito;
           localStorage.setItem('saldoCorporativo', nuevoSaldo);
         }
@@ -143,30 +146,70 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Medio de Pago Inteligente */}
+          {/* Selector Interactivo de Medios de Pago */}
           <div style={{ marginBottom: '30px' }}>
-            <label style={{ display: 'block', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Medio de pago:</label>
+            <label style={{ display: 'block', fontWeight: '700', color: '#374151', marginBottom: '12px' }}>Medio de pago:</label>
             
             {tipoClienteActual === 'empresa' ? (
-              <div style={{ padding: '15px', border: saldoInsuficiente ? '2px solid #ef4444' : '2px solid #10b981', borderRadius: '8px', backgroundColor: saldoInsuficiente ? '#fef2f2' : '#f0fdf4' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ color: saldoInsuficiente ? '#991b1b' : '#166534', fontWeight: '700' }}>💼 Convenio Corporativo</span>
-                  <span style={{ fontSize: '1.2rem', fontWeight: '800', color: saldoInsuficiente ? '#dc2626' : '#059669' }}>
-                    Saldo: ${saldoCorporativo.toLocaleString('es-CL')}
-                  </span>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 
-                {saldoInsuficiente ? (
-                  <p style={{ margin: 0, color: '#dc2626', fontSize: '0.9rem', fontWeight: '600' }}>
-                    ⚠️ Tu saldo no es suficiente para cubrir el total de esta compra.
-                  </p>
-                ) : (
-                  <p style={{ margin: 0, color: '#059669', fontSize: '0.9rem', fontWeight: '500' }}>
-                    Tendrás un saldo restante de ${(saldoCorporativo - totalCarrito).toLocaleString('es-CL')} tras esta compra.
-                  </p>
-                )}
+                {/* Opción 1: Convenio B2B */}
+                <div 
+                  onClick={() => setMetodoPago('CORPORATIVO')}
+                  style={{ 
+                    padding: '15px', 
+                    border: metodoPago === 'CORPORATIVO' ? (totalCarrito > saldoCorporativo ? '2px solid #ef4444' : '2px solid #10b981') : '1px solid #d1d5db', 
+                    borderRadius: '8px', 
+                    backgroundColor: metodoPago === 'CORPORATIVO' ? (totalCarrito > saldoCorporativo ? '#fef2f2' : '#f0fdf4') : '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input type="radio" checked={metodoPago === 'CORPORATIVO'} readOnly style={{ accentColor: '#10b981', transform: 'scale(1.2)' }} />
+                    <span style={{ color: metodoPago === 'CORPORATIVO' ? (totalCarrito > saldoCorporativo ? '#991b1b' : '#166534') : '#374151', fontWeight: '700' }}>💼 Convenio Corporativo</span>
+                    <span style={{ marginLeft: 'auto', fontSize: '1.1rem', fontWeight: '800', color: totalCarrito > saldoCorporativo && metodoPago === 'CORPORATIVO' ? '#dc2626' : '#059669' }}>
+                      Saldo: ${saldoCorporativo.toLocaleString('es-CL')}
+                    </span>
+                  </div>
+                  
+                  {metodoPago === 'CORPORATIVO' && (
+                    totalCarrito > saldoCorporativo ? (
+                      <p style={{ margin: '8px 0 0 28px', color: '#dc2626', fontSize: '0.9rem', fontWeight: '600' }}>
+                        ⚠️ Tu saldo no es suficiente. Por favor, selecciona Tarjeta para pagar.
+                      </p>
+                    ) : (
+                      <p style={{ margin: '8px 0 0 28px', color: '#059669', fontSize: '0.9rem', fontWeight: '500' }}>
+                        Tendrás un saldo restante de ${(saldoCorporativo - totalCarrito).toLocaleString('es-CL')} tras esta compra.
+                      </p>
+                    )
+                  )}
+                </div>
+
+                {/* Opción 2: Tarjeta Bancaria */}
+                <div 
+                  onClick={() => setMetodoPago('TARJETA')}
+                  style={{ 
+                    padding: '15px', 
+                    border: metodoPago === 'TARJETA' ? '2px solid #7c3aed' : '1px solid #d1d5db', 
+                    borderRadius: '8px', 
+                    backgroundColor: metodoPago === 'TARJETA' ? '#f3e8ff' : '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input type="radio" checked={metodoPago === 'TARJETA'} readOnly style={{ accentColor: '#7c3aed', transform: 'scale(1.2)' }} />
+                    <span style={{ color: metodoPago === 'TARJETA' ? '#6d28d9' : '#374151', fontWeight: '700' }}>💳 Tarjeta de Crédito/Débito (Transbank)</span>
+                  </div>
+                  {metodoPago === 'TARJETA' && (
+                    <p style={{ margin: '8px 0 0 28px', color: '#6b21a8', fontSize: '0.9rem', fontWeight: '500' }}>
+                      Serás redirigido a la pasarela segura para completar el pago.
+                    </p>
+                  )}
+                </div>
+
               </div>
             ) : (
+              // Vista para clientes normales sin convenio
               <div style={{ padding: '15px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: '#f9fafb', color: '#4b5563', fontWeight: '500' }}>
                 💳 Tarjeta (Transbank) - Pago seguro en línea
               </div>
@@ -194,7 +237,7 @@ export default function Checkout() {
                 transition: 'all 0.3s'
               }}
             >
-              {saldoInsuficiente ? 'Saldo Insuficiente' : itemsCarrito.length === 0 ? 'Carrito Vacío' : 'Pagar y Confirmar'}
+              {saldoInsuficiente ? 'Selecciona otro medio de pago' : itemsCarrito.length === 0 ? 'Carrito Vacío' : 'Pagar y Confirmar'}
             </button>
           </div>
 
