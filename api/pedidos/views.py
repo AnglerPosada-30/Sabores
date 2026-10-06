@@ -1,9 +1,11 @@
 # pedidos/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.generics import ListAPIView
 from rest_framework import status
 from django.db import transaction
 from .models import Pedido, DetallePedido
+from .serializers import PedidoSerializer, DetallePedidoSerializer
 from catalogo.models import Plato
 from finanzas.services import PagoSaldoCorporativo, PagoPasarelaTarjeta
 
@@ -66,3 +68,42 @@ class ProcesarPedidoView(APIView):
         except Exception as e:
             # Cualquier error inesperado cancela todas las inserciones y cobros en la base de datos
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# --- Nuevas vistas para el repartidor ---
+
+class PedidosEnDespachoView(ListAPIView):
+    """
+    Puente de Lectura: Envía al frontend todos los pedidos 
+    que están listos para ser entregados.
+    """
+    serializer_class = PedidoSerializer
+
+    def get_queryset(self):
+        # Filtramos la base de datos para retornar solo órdenes con estado 'DESPACHO'
+        return Pedido.objects.filter(estado='DESPACHO').order_by('fechaRegistro')
+
+class ActualizarEstadoPedidoView(APIView):
+    """
+    Puente de Acción: Recibe un ID desde React y cambia su estado a ENTREGADO.
+    """
+    def patch(self, request, pedido_id):
+        try:
+            pedido = Pedido.objects.get(id=pedido_id)
+            nuevo_estado = request.data.get('estado')
+            
+            # Verificamos que el estado enviado exista en la tupla ESTADOS de models.py
+            estados_validos = dict(Pedido.ESTADOS).keys()
+            if nuevo_estado in estados_validos:
+                pedido.estado = nuevo_estado
+                pedido.save()  # Al usar save(), se activará automáticamente tu archivo signals.py[cite: 1]
+                
+                return Response({
+                    "mensaje": f"Pedido {pedido_id} actualizado a {nuevo_estado}"
+                }, status=status.HTTP_200_OK)
+            
+            return Response({"error": "Estado no válido"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Pedido.DoesNotExist:
+            return Response({"error": "Pedido no encontrado"}, status=status.HTTP_404_NOT_FOUND)

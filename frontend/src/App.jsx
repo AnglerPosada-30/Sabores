@@ -6,21 +6,28 @@ import Pedidos from './pages/Pedidos';
 import Registro from './pages/Registro';
 import Comprobante from './pages/Comprobante';
 import MenuDetallado from './pages/MenuDetallado';
-import Delivery from './pages/Delivery';
-import { CartProvider } from './CartContext'; // 1. Importa el proveedor del carrito
+import Delivery, { PedidosDelivery } from './pages/Delivery';
+import { CartProvider } from './CartContext'; // Proveedor global del carrito
+import Checkout from './pages/Checkout';
+import AdminLogin from './pages/AdminLogin';
+import AdminPanel from './pages/AdminPanel';
 
 function App() {
   return (
-    <CartProvider> {/* 2. Envuelve todo el Router para que el carrito sea global */}
+    <CartProvider>
       <Router>
         <Routes>
           <Route path="/" element={<Catalogo />} />
           <Route path="/login" element={<Login />} />
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/delivery" element={<Delivery />} />
+          <Route path="/delivery/pedidos" element={<PedidosDelivery />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/comprobante" element={<Comprobante />} />
           <Route path="/menu" element={<MenuDetallado />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Routes>
       </Router>
     </CartProvider>

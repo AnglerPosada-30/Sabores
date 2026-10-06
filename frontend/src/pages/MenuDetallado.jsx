@@ -7,7 +7,6 @@ export default function MenuDetallado() {
   const [categoriaActiva, setCategoriaActiva] = useState('platos');
   const { agregarAlPedido, setVerCarrito, totalItems } = useCart();
 
-  // 1. Estado inicial vacío
   const [cartaCompleta, setCartaCompleta] = useState({
     platos: [],
     bebestibles: [],
@@ -15,7 +14,6 @@ export default function MenuDetallado() {
     extras: []
   });
 
-  // 2. Conexión automática con Django
   useEffect(() => {
     const obtenerMenu = async () => {
       try {
@@ -41,9 +39,28 @@ export default function MenuDetallado() {
           });
 
           setCartaCompleta(menuOrdenado);
+        } else {
+          throw new Error("No se pudo conectar con el servidor");
         }
       } catch (error) {
-        console.error("Error al conectar con Django:", error);
+        console.warn("Backend no disponible temporalmente. Usando datos de prueba locales para maquetar:", error);
+        
+        // DATOS DE PRUEBA (Mock): Solo para que veas cómo se ve la interfaz mientras tu compañero termina el backend
+        setCartaCompleta({
+          platos: [
+            { id: 1, nombre: 'Cazuela de Aves', desc: 'Delicioso plato casero con choclo y zapallo.', precio: 6500, icon: '🍲', proveedor: 'El Comilón' },
+            { id: 2, nombre: 'pastel de Choclo', desc: 'Tradicional pastel de choclo en greda.', precio: 7000, icon: '🌽', proveedor: 'El Comilón' }
+          ],
+          bebestibles: [
+            { id: 3, nombre: 'Jugo Natural de Frambuesa', desc: 'Medio litro fresco del día.', precio: 2500, icon: '🧃', proveedor: 'El Comilón' }
+          ],
+          postres: [
+            { id: 4, nombre: 'Leche Asada', desc: 'Receta tradicional de la casa.', precio: 3000, icon: '🍮', proveedor: 'El Comilón' }
+          ],
+          extras: [
+            { id: 5, nombre: 'Papas Fritas Caseras', desc: 'Porción crujiente.', precio: 3500, icon: '🍟', proveedor: 'El Comilón' }
+          ]
+        });
       }
     };
 

@@ -83,40 +83,53 @@ function Delivery() {
   };
 
   return (
-    <div className="delivery-page">
-      <aside className="delivery-sidebar">
-        <Link className="delivery-brand" to="/">
-          <span className="delivery-brand-mark" aria-hidden="true">E</span>
-          <span>
-            <strong>EL COMILÓN</strong>
-            <small>Panel de reparto</small>
-          </span>
+    <aside className="delivery-sidebar">
+      <Link className="delivery-brand" to="/">
+        <span className="delivery-brand-mark" aria-hidden="true">E</span>
+        <span>
+          <strong>EL COMILÓN</strong>
+          <small>Panel de reparto</small>
+        </span>
+      </Link>
+
+      <p className="delivery-nav-label">MENÚ</p>
+      <nav className="delivery-nav" aria-label="Navegación principal">
+        <Link to="/" className="delivery-nav-link">
+          <span aria-hidden="true">⌂</span> Inicio
         </Link>
+        <Link
+          to="/delivery/pedidos"
+          className={`delivery-nav-link${currentPage === 'pedidos' ? ' is-active' : ''}`}
+          aria-current={currentPage === 'pedidos' ? 'page' : undefined}
+        >
+          <span aria-hidden="true">▤</span> Pedidos
+        </Link>
+        <Link
+          to="/delivery"
+          className={`delivery-nav-link${currentPage === 'perfil' ? ' is-active' : ''}`}
+          aria-current={currentPage === 'perfil' ? 'page' : undefined}
+        >
+          <span aria-hidden="true">◉</span> Mi perfil
+        </Link>
+      </nav>
 
-        <p className="delivery-nav-label">MENÚ</p>
-        <nav className="delivery-nav" aria-label="Navegación principal">
-          <Link to="/" className="delivery-nav-link">
-            <span aria-hidden="true">⌂</span> Inicio
-          </Link>
-          <Link to="/pedidos" className="delivery-nav-link">
-            <span aria-hidden="true">▤</span> Pedidos
-          </Link>
-          <Link to="/delivery" className="delivery-nav-link is-active" aria-current="page">
-            <span aria-hidden="true">◉</span> Mi perfil
-          </Link>
-        </nav>
+      <div className="delivery-sidebar-user">
+        <span className="delivery-avatar delivery-avatar-small" aria-hidden="true">
+          {repartidor.iniciales}
+        </span>
+        <span>
+          <strong>{repartidor.nombre}</strong>
+          <small>{repartidor.rol}</small>
+        </span>
+      </div>
+    </aside>
+  );
+}
 
-        <div className="delivery-sidebar-user">
-          <span className="delivery-avatar delivery-avatar-small" aria-hidden="true">
-            {repartidor.iniciales}
-          </span>
-          <span>
-            <strong>{repartidor.nombre}</strong>
-            <small>{repartidor.rol}</small>
-          </span>
-        </div>
-      </aside>
-
+function Delivery() {
+  return (
+    <div className="delivery-page">
+      <DeliverySidebar currentPage="perfil" />
       <main className="delivery-main">
         <header className="delivery-topbar">
           <div>
