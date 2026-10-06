@@ -1,4 +1,5 @@
-# usuarios/serializers.py
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 import re
 from rest_framework import serializers
 from .models import Usuario
@@ -9,44 +10,38 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'rut', 'telefono', 'rol']
 
     def validate_rut(self, value):
-        """
-        Validación estricta del RUT chileno usando el algoritmo Módulo 11.
-        """
-        if not value:
-            return value
-
-        # 1. Limpiar el string: quitar puntos, guiones y pasar a mayúscula (por la 'K')
+        if not value: return value
         rut_limpio = value.replace(".", "").replace("-", "").upper()
-
-        # 2. Validar con Expresión Regular que solo tenga números y termine en número o K
         if not re.match(r'^\d{7,8}[0-9K]$', rut_limpio):
-            raise serializers.ValidationError("Formato de RUT inválido. Solo debe contener números y la letra K.")
-
-        # 3. Separar el cuerpo del dígito verificador (dv)
+            raise serializers.ValidationError("Formato inválido.")
         cuerpo = rut_limpio[:-1]
         dv_ingresado = rut_limpio[-1]
-
-        # 4. Algoritmo Módulo 11
         suma = 0
         multiplo = 2
-        
-        # Recorrer el cuerpo del RUT de derecha a izquierda
         for c in reversed(cuerpo):
             suma += int(c) * multiplo
             multiplo = multiplo + 1 if multiplo < 7 else 2
-
-        # Calcular el dígito verificador esperado
         dv_esperado = 11 - (suma % 11)
-        
-        if dv_esperado == 11:
-            dv_calculado = '0'
-        elif dv_esperado == 10:
-            dv_calculado = 'K'
-        else:
-            dv_calculado = str(dv_esperado)
-
-        # 5. Comparar el DV ingresado por el usuario con el calculado matemáticamente
+        dv_calculado = '0' if dv_esperado == 11 else 'K' if dv_esperado == 10 else str(dv_esperado)
         if dv_ingresado != dv_calculado:
-            raise serializers.ValidationError("El RUT ingresado no es válido (Dígito verificador incorrecto).")
-            
-        return rut_limpio # Retorna el RUT limpio para guardarlo estandarizado en la BD
+            raise serializers.ValidationError("Dígito verificador incorrecto.")
+        return rut_limpio
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # 1. Si es superusuario de Django, tiene pase VIP absoluto
+        if self.user.is_superuser or self.user.is_staff:
+            data['rol'] = 'ADMIN'
+        # 2. Si no, leemos la columna 'rol' de MySQL (quitando espacios accidentales)
+        elif hasattr(self.user, 'rol') and self.user.rol:
+            data['rol'] = str(self.user.rol).strip().upper()
+        # 3. Si no tiene rol, es cliente
+        else:
+            data['rol'] = 'CLIENTE'
+
+        return data
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

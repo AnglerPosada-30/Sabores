@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Delivery.css';
 
-// Mantenemos los datos del repartidor estáticos por ahora (hasta que conectemos el Perfil)
+// --- DATOS ESTÁTICOS ---
 const repartidor = {
   nombre: 'Camila Ramírez',
   iniciales: 'CR',
@@ -13,7 +13,6 @@ const repartidor = {
   codigo: 'DEL-024',
 };
 
-// Mantenemos el historial estático como demostración visual
 const pedidosCompletados = [
   { numero: '#PED-1081', cliente: 'Isidora Muñoz', resumen: '2 platos · 1 bebida', fecha: 'Hoy, 13:42', total: 18900 },
   { numero: '#PED-1076', cliente: 'Martín Rojas', resumen: '1 plato · 2 acompañamientos', fecha: 'Hoy, 12:18', total: 27600 },
@@ -26,62 +25,9 @@ const formatoPrecio = (precio) =>
     maximumFractionDigits: 0,
   }).format(precio);
 
-function Delivery() {
-  // 1. ESTADOS DE REACT: Guardarán la información que viene de Django
-  const [pedidosActivos, setPedidosActivos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-
-  // 2. EFECTO DE CARGA: Se ejecuta automáticamente al abrir la página
-  useEffect(() => {
-    cargarPedidosEnDespacho();
-  }, []);
-
-  // 3. PUENTE DE LECTURA (GET): Va a buscar los pedidos con estado 'DESPACHO'
-  const cargarPedidosEnDespacho = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8000/api/pedidos/despacho/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const data = await response.json();
-      if (response.ok) {
-        setPedidosActivos(data); // Guardamos los pedidos reales en el estado
-      }
-    } catch (error) {
-      console.error("Error al cargar los pedidos:", error);
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  // 4. PUENTE DE ACCIÓN (PATCH): Avisa a Django que el pedido fue entregado
-  const marcarComoEntregado = async (pedidoId) => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/pedidos/${pedidoId}/estado/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ estado: 'ENTREGADO' })
-      });
-
-      if (response.ok) {
-        // Si Django confirma la actualización, sacamos el pedido de la pantalla
-        setPedidosActivos(pedidosActivos.filter(p => p.id !== pedidoId));
-        alert(`Pedido #${pedidoId} marcado como entregado.`);
-      } else {
-        alert("Hubo un problema al actualizar el estado.");
-      }
-    } catch (error) {
-      console.error("Error al actualizar:", error);
-    }
-  };
-
+// --- COMPONENTE 1: BARRA LATERAL (SIDEBAR) ---
+// Le cambiamos el nombre a DeliverySidebar y le pasamos el currentPage
+function DeliverySidebar({ currentPage }) {
   return (
     <aside className="delivery-sidebar">
       <Link className="delivery-brand" to="/">
@@ -126,10 +72,64 @@ function Delivery() {
   );
 }
 
+// --- COMPONENTE 2: PÁGINA PRINCIPAL (DELIVERY) ---
+// Aquí movemos toda la lógica de conexión a la BD
 function Delivery() {
+  const [pedidosActivos, setPedidosActivos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    cargarPedidosEnDespacho();
+  }, []);
+
+  const cargarPedidosEnDespacho = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/api/pedidos/despacho/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setPedidosActivos(data); 
+      }
+    } catch (error) {
+      console.error("Error al cargar los pedidos:", error);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const marcarComoEntregado = async (pedidoId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000/api/pedidos/${pedidoId}/estado/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ estado: 'ENTREGADO' })
+      });
+
+      if (response.ok) {
+        setPedidosActivos(pedidosActivos.filter(p => p.id !== pedidoId));
+        alert(`Pedido #${pedidoId} marcado como entregado.`);
+      } else {
+        alert("Hubo un problema al actualizar el estado.");
+      }
+    } catch (error) {
+      console.error("Error al actualizar:", error);
+    }
+  };
+
   return (
     <div className="delivery-page">
+      {/* Ahora sí llamamos al componente Sidebar de forma correcta */}
       <DeliverySidebar currentPage="perfil" />
+      
       <main className="delivery-main">
         <header className="delivery-topbar">
           <div>
@@ -172,7 +172,6 @@ function Delivery() {
           </article>
           <article className="delivery-stat-card">
             <span className="delivery-stat-icon stat-orange" aria-hidden="true">↗</span>
-            {/* Vinculamos el contador a la cantidad real de pedidos en la BD */}
             <div><small>En curso</small><strong>{pedidosActivos.length}</strong></div>
             <span className="delivery-stat-note">ahora</span>
           </article>
@@ -198,7 +197,6 @@ function Delivery() {
             ) : pedidosActivos.length === 0 ? (
               <p style={{ color: '#6b7280', padding: '20px' }}>No tienes pedidos pendientes de entrega en este momento.</p>
             ) : (
-              // 5. RENDERIZADO DINÁMICO: Dibujamos las tarjetas usando los datos de Django
               pedidosActivos.map((pedido) => (
                 <article className="delivery-order-card" key={pedido.id}>
                   <div className="delivery-order-heading">
@@ -228,7 +226,6 @@ function Delivery() {
                     <span>Monto a cobrar/verificar</span><strong>{formatoPrecio(pedido.total)}</strong>
                   </div>
 
-                  {/* 6. BOTÓN DE ACCIÓN: Ejecuta el PATCH hacia la base de datos */}
                   <button 
                     onClick={() => marcarComoEntregado(pedido.id)}
                     style={{ marginTop: '15px', width: '100%', padding: '12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}

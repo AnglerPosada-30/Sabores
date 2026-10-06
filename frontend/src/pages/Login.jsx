@@ -10,28 +10,38 @@ export default function Login() {
     e.preventDefault();
     if (usuario.trim() !== '' && password.trim() !== '') {
       try {
-        // Hacemos la petición real a nuestro backend de Django (Nos aseguramos de que el puerto sea 8000)
         const response = await fetch('http://localhost:8000/api/login/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: usuario,  // Django espera 'username', aunque el campo se llame 'usuario'
+            username: usuario,
             password: password
           })
         });
 
         if (response.ok) {
           const data = await response.json();
-          // Guardamos los tokens (Access y Refresh) en el navegador del usuario
+          
+          // ALERTA DE DIAGNÓSTICO: Te dirá exactamente qué lee React desde Django
+          alert(`¡Inicio de sesión exitoso! Django detectó que tu rol es: [${data.rol}]`);
+          
+          // Guardamos los tokens y el rol
           localStorage.setItem('access_token', data.access);
           localStorage.setItem('refresh_token', data.refresh);
+          localStorage.setItem('user_role', data.rol);
           
-          alert('¡Inicio de sesión exitoso!');
-          navigate('/menu'); // Redirigimos al menú principal
+          // Redirección inteligente
+          if (data.rol === 'ADMIN') {
+            navigate('/admin-panel');
+          } else if (data.rol === 'REPARTIDOR') {
+            navigate('/delivery');
+          } else {
+            navigate('/menu');
+          }
+          
         } else {
-          // Si Django responde con un 401 (Credenciales inválidas)
           alert('Credenciales incorrectas. Verifica tu usuario y contraseña.');
         }
       } catch (error) {
@@ -42,7 +52,6 @@ export default function Login() {
       alert('Por favor, ingresa tu usuario y contraseña');
     }
   };
-
 
   return (
     <div style={{
@@ -57,7 +66,6 @@ export default function Login() {
       padding: '20px',
       boxSizing: 'border-box'
     }}>
-      {/* Cabecera / Bienvenida de la página */}
       <div style={{ textAlign: 'center', marginBottom: '30px' }}>
         <h1 style={{ color: '#2e1065', fontSize: '2.3rem', margin: '0 0 10px 0', fontWeight: '800', textShadow: '0 1px 4px rgba(255,255,255,0.4)' }}>
           🍔 ¡Bienvenido a EL COMILON! 🍕
@@ -67,7 +75,6 @@ export default function Login() {
         </p>
       </div>
 
-      {/* Tarjeta del Formulario */}
       <div style={{
         background: '#ffffff',
         padding: '40px',
@@ -148,7 +155,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Enlace de Registro integrado */}
         <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.9rem', color: '#4b5563' }}>
           ¿No tienes cuenta?{' '}
           <Link to="/registro" style={{ color: '#7c3aed', fontWeight: '700', textDecoration: 'none' }}>

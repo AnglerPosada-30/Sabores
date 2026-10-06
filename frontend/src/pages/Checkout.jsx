@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import './Checkout.css'; // Si gustas crearle estilos independientes
+import { useCart } from '../CartContext'; // <-- Usamos tu Hook personalizado
 
-const Checkout = ({ carrito = [] }) => { // Idealmente recibes el carrito por props o contexto
+export default function Checkout() { 
   const navigate = useNavigate();
+  
+  // Extraemos el carrito y la función para limpiarlo usando tu hook
+  const { carrito, setCarrito } = useCart() || { carrito: [] };
+  const itemsCarrito = carrito || []; 
   
   const [notas, setNotas] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState('delivery');
@@ -11,128 +15,141 @@ const Checkout = ({ carrito = [] }) => { // Idealmente recibes el carrito por pr
   const tipoClienteActual = localStorage.getItem('tipoCliente') || 'normal'; 
   const [metodoPago, setMetodoPago] = useState(tipoClienteActual === 'empresa' ? 'convenio_empresa' : 'tarjeta');
 
-  const totalCarrito = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+  const totalCarrito = itemsCarrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
-  const handleSubmitPedido = (e) => {
+  const handleSubmitPedido = async (e) => {
     e.preventDefault();
 
+    const detallesPedido = itemsCarrito.map(item => ({
+      plato: item.id,
+      cantidad: item.cantidad,
+      precio: item.precio
+    }));
+
     const datosPedido = {
-      productos: carrito,
       total: totalCarrito,
       observaciones: notas,
       tipo_entrega: tipoEntrega,
       metodo_pago: metodoPago,
+      detalles: detallesPedido
     };
 
-    console.log("Datos listos para enviar al backend de Django:", datosPedido);
-    
-    // Aquí tus compañeros conectarán Axios/Fetch:
-    // axios.post('/api/pedidos/', datosPedido)
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/api/pedidos/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(datosPedido)
+      });
 
-    alert("¡Pedido creado con éxito!");
-    navigate('/'); // Vuelve al inicio o a donde prefieras
+      if (response.ok) {
+        const data = await response.json();
+        
+        // ¡Vaciamos el carrito porque la compra fue un éxito!
+        if (setCarrito) setCarrito([]); 
+        
+        // Viajamos al comprobante
+        navigate('/comprobante', { state: { pedido: data } }); 
+      } else {
+        alert("Hubo un problema al procesar tu pedido. Verifica tu sesión.");
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+      alert("No se pudo conectar con el servidor.");
+    }
   };
 
   return (
-    <div className="pagina-checkout" style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-      <h2>Finalizar Pedido - El Comilón</h2>
-
-      <div className="checkout-seccion">
-        <h3>Detalle del pedido</h3>
-        <ul>
-          {carrito.map((item, index) => (
-            <li key={index} style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{item.nombre} (x{item.cantidad})</span>
-              <span>${item.precio * item.cantidad}</span>
-            </li>
-          ))}
-        </ul>
-        <p><strong>Total a pagar: ${totalCarrito}</strong></p>
-      </div>
-
-      <form onSubmit={handleSubmitPedido}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', padding: '40px 20px', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff', borderRadius: '16px', padding: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
         
-        {/* Notas */}
-        <div className="checkout-seccion" style={{ marginTop: '15px' }}>
-          <label><strong>Notas / Información adicional:</strong></label>
-          <textarea 
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-            placeholder="Ej: Casa de reja negra, sin cebolla..."
-            rows="3"
-            style={{ width: '100%', marginTop: '5px' }}
-          />
-        </div>
+        <h2 style={{ color: '#2e1065', textAlign: 'center', margin: '0 0 30px 0', fontSize: '1.8rem', borderBottom: '2px solid #f3e8ff', paddingBottom: '15px' }}>
+          Finalizar Pedido
+        </h2>
 
-        {/* Tipo de Entrega */}
-        <div className="checkout-seccion" style={{ marginTop: '15px' }}>
-          <label><strong>Método de entrega:</strong></label>
-          <div>
-            <label>
-              <input 
-                type="radio" 
-                name="tipoEntrega" 
-                checked={tipoEntrega === 'retiro'}
-                onChange={() => setTipoEntrega('retiro')}
-              />
-              Retiro en tienda
-            </label>
-          </div>
-          <div>
-            <label>
-              <input 
-                type="radio" 
-                name="tipoEntrega" 
-                checked={tipoEntrega === 'delivery'}
-                onChange={() => setTipoEntrega('delivery')}
-              />
-              Delivery (aprox. 40 mins)
-            </label>
+        {/* Resumen del Carrito */}
+        <div style={{ backgroundColor: '#faf5ff', padding: '20px', borderRadius: '12px', marginBottom: '25px' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#4c1d95', fontSize: '1.2rem' }}>Resumen de tu compra</h3>
+          
+          {itemsCarrito.length === 0 ? (
+            <p style={{ color: '#ef4444', fontWeight: 'bold', textAlign: 'center' }}>Tu carrito está vacío.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {itemsCarrito.map((item, index) => (
+                <li key={index} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#4b5563', borderBottom: '1px dashed #ddd6fe', paddingBottom: '10px' }}>
+                  <span><strong style={{ color: '#374151' }}>{item.cantidad}x</strong> {item.nombre}</span>
+                  <span style={{ fontWeight: '600', color: '#2e1065' }}>${(item.precio * item.cantidad).toLocaleString('es-CL')}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '1.3rem', color: '#2e1065', fontWeight: '800' }}>
+            <span>Total a pagar:</span>
+            <span>${totalCarrito.toLocaleString('es-CL')}</span>
           </div>
         </div>
 
-        {/* Medio de Pago */}
-        <div className="checkout-seccion" style={{ marginTop: '15px' }}>
-          <label><strong>Medio de pago:</strong></label>
-          {tipoClienteActual === 'empresa' ? (
-            <div>
-              <label>
-                <input 
-                  type="radio" 
-                  name="metodoPago" 
-                  checked={metodoPago === 'convenio_empresa'}
-                  onChange={() => setMetodoPago('convenio_empresa')}
-                />
-                🏢 Facturación por Convenio
+        <form onSubmit={handleSubmitPedido}>
+          
+          {/* Notas */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Notas / Instrucciones para la cocina:</label>
+            <textarea 
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              placeholder="Ej: Sin cebolla, timbre malo, etc..."
+              rows="3"
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
+            />
+          </div>
+
+          {/* Tipo de Entrega */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Método de entrega:</label>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <label style={{ flex: 1, padding: '15px', border: tipoEntrega === 'retiro' ? '2px solid #7c3aed' : '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', backgroundColor: tipoEntrega === 'retiro' ? '#f3e8ff' : 'white', textAlign: 'center', fontWeight: '600', color: tipoEntrega === 'retiro' ? '#6d28d9' : '#4b5563' }}>
+                <input type="radio" name="tipoEntrega" checked={tipoEntrega === 'retiro'} onChange={() => setTipoEntrega('retiro')} style={{ display: 'none' }} />
+                🚶 Retiro en tienda
               </label>
-              <label style={{ marginLeft: '15px' }}>
-                <input 
-                  type="radio" 
-                  name="metodoPago" 
-                  checked={metodoPago === 'tarjeta'}
-                  onChange={() => setMetodoPago('tarjeta')}
-                />
-                💳 Tarjeta (Transbank)
+              <label style={{ flex: 1, padding: '15px', border: tipoEntrega === 'delivery' ? '2px solid #7c3aed' : '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', backgroundColor: tipoEntrega === 'delivery' ? '#f3e8ff' : 'white', textAlign: 'center', fontWeight: '600', color: tipoEntrega === 'delivery' ? '#6d28d9' : '#4b5563' }}>
+                <input type="radio" name="tipoEntrega" checked={tipoEntrega === 'delivery'} onChange={() => setTipoEntrega('delivery')} style={{ display: 'none' }} />
+                🛵 Delivery
               </label>
             </div>
-          ) : (
-            <p>💳 Tarjeta (Transbank) - Pago seguro en línea</p>
-          )}
-        </div>
+          </div>
 
-        {/* Botones */}
-        <div className="checkout-acciones" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-          <button type="button" onClick={() => navigate(-1)} className="btn-secundario">
-            Volver
-          </button>
-          <button type="submit" className="btn-primario">
-            Confirmar y Enviar Pedido
-          </button>
-        </div>
+          {/* Medio de Pago */}
+          <div style={{ marginBottom: '30px' }}>
+            <label style={{ display: 'block', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Medio de pago:</label>
+            <div style={{ padding: '15px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: '#f9fafb', color: '#4b5563', fontWeight: '500' }}>
+              💳 Tarjeta (Transbank) - Pago seguro en línea
+            </div>
+          </div>
 
-      </form>
+          {/* Botones */}
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button 
+              type="button" 
+              onClick={() => navigate('/menu')} 
+              style={{ flex: 1, padding: '14px', backgroundColor: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '1rem' }}
+            >
+              Volver al Menú
+            </button>
+            <button 
+              type="submit" 
+              disabled={itemsCarrito.length === 0}
+              style={{ flex: 2, padding: '14px', backgroundColor: itemsCarrito.length === 0 ? '#9ca3af' : '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: itemsCarrito.length === 0 ? 'not-allowed' : 'pointer', fontSize: '1rem', boxShadow: itemsCarrito.length === 0 ? 'none' : '0 4px 12px rgba(124,58,237,0.3)' }}
+            >
+              {itemsCarrito.length === 0 ? 'Carrito Vacío' : 'Pagar y Confirmar'}
+            </button>
+          </div>
+
+        </form>
+      </div>
     </div>
   );
-};
-
-export default Checkout;
+}

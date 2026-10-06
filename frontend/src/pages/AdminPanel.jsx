@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Admin.css';
 
@@ -10,50 +10,6 @@ const estadosPedido = [
   ['CANCELADO', 'Cancelado'],
 ];
 
-const platosIniciales = [
-  { id: 1, nombre: 'Cazuela de Vacuno Tradicional', categoria: 'Platos y entradas', precio: 6500, stock: 18, disponible: true },
-  { id: 2, nombre: 'Pastel de Choclo en Greda', categoria: 'Platos y entradas', precio: 7000, stock: 12, disponible: true },
-  { id: 3, nombre: 'Ensalada Executive de Salmón', categoria: 'Platos y entradas', precio: 8500, stock: 7, disponible: true },
-  { id: 4, nombre: 'Menú Ejecutivo Pollo Arvejado', categoria: 'Menú del día', precio: 5800, stock: 0, disponible: false },
-  { id: 5, nombre: 'Limonada natural', categoria: 'Bebestibles', precio: 2200, stock: 24, disponible: true },
-];
-
-const pedidosIniciales = [
-  {
-    id: '1088',
-    cliente: 'Valentina Soto',
-    hora: 'Hoy, 14:32',
-    productos: ['2 × Cazuela de Vacuno', '1 × Limonada natural'],
-    total: 15200,
-    estado: 'PREPARACION',
-  },
-  {
-    id: '1087',
-    cliente: 'Diego Fernández',
-    hora: 'Hoy, 14:18',
-    productos: ['1 × Pastel de Choclo', '1 × Ensalada de Salmón'],
-    total: 15500,
-    estado: 'DESPACHO',
-  },
-  {
-    id: '1086',
-    cliente: 'Isidora Muñoz',
-    hora: 'Hoy, 13:54',
-    productos: ['1 × Menú Pollo Arvejado'],
-    total: 5800,
-    estado: 'ENTREGADO',
-  },
-  {
-    id: '1085',
-    cliente: 'Martín Rojas',
-    hora: 'Hoy, 13:40',
-    productos: ['2 × Pastel de Choclo'],
-    total: 14000,
-    estado: 'CANCELADO',
-    motivo: 'El cliente solicitó cancelar.',
-  },
-];
-
 const formatoPrecio = (precio) =>
   new Intl.NumberFormat('es-CL', {
     style: 'currency',
@@ -62,27 +18,61 @@ const formatoPrecio = (precio) =>
   }).format(precio);
 
 export default function AdminPanel() {
-  const [platos, setPlatos] = useState(platosIniciales);
-  const [pedidos, setPedidos] = useState(pedidosIniciales);
+  const [platos, setPlatos] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
   const [cambios, setCambios] = useState([
-    { id: 1, usuario: 'Administración', descripcion: 'Sesión de demostración iniciada', hora: 'Ahora' },
+    { id: 1, usuario: 'Sistema', descripcion: 'Panel conectado a la base de datos', hora: 'Ahora' },
   ]);
   const [filtroPedidos, setFiltroPedidos] = useState('TODOS');
   const [guardando, setGuardando] = useState('');
+  const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
+
+  // 1. Cargar datos reales al abrir el panel
+  useEffect(() => {
+    cargarDatosDelServidor();
+  }, []);
+
+  const cargarDatosDelServidor = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      // Consultar Pedidos
+      const resPedidos = await fetch('http://localhost:8000/api/pedidos/', { headers });
+      if (resPedidos.ok) {
+        const dataPedidos = await resPedidos.json();
+        setPedidos(dataPedidos);
+      }
+
+      // Consultar Platos (Asegúrate de que esta URL coincida con tu backend)
+      const resPlatos = await fetch('http://localhost:8000/api/catalogo/platos/', { headers });
+      if (resPlatos.ok) {
+        const dataPlatos = await resPlatos.json();
+        setPlatos(dataPlatos);
+      }
+    } catch (error) {
+      console.error("Error cargando el panel:", error);
+      registrarCambio("Error de conexión con el servidor.");
+    } finally {
+      setCargando(false);
+    }
+  };
 
   const registrarCambio = (descripcion) => {
     setCambios((actuales) => [
-      { id: Date.now(), usuario: 'Administración', descripcion, hora: 'Ahora' },
+      { id: Date.now(), usuario: 'Administración', descripcion, hora: new Date().toLocaleTimeString() },
       ...actuales,
     ]);
   };
 
-  const actualizarPlato = (event, plato) => {
+  // 2. Actualizar Inventario en Django
+  const actualizarPlato = async (event, plato) => {
     event.preventDefault();
     const valores = new FormData(event.currentTarget);
     const precio = Number(valores.get('precio'));
     const stock = Number(valores.get('stock'));
+    const disponible = valores.get('disponible') === 'on';
 
     if (!Number.isInteger(precio) || precio < 0 || !Number.isInteger(stock) || stock < 0) {
       window.alert('El precio y el stock deben ser números enteros iguales o mayores que cero.');
@@ -90,43 +80,83 @@ export default function AdminPanel() {
     }
 
     setGuardando(`plato-${plato.id}`);
-    const disponible = valores.get('disponible') === 'on';
-    setPlatos((actuales) =>
-      actuales.map((actual) =>
-        actual.id === plato.id
-          ? { ...actual, precio, stock, disponible }
-          : actual
-      )
-    );
-    registrarCambio(`Actualizó precio, stock o disponibilidad de “${plato.nombre}”.`);
-    setGuardando('');
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      // Petición PATCH para actualizar solo stock, precio y disponibilidad
+      const response = await fetch(`http://localhost:8000/api/catalogo/platos/${plato.id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ precio, stock, disponible })
+      });
+
+      if (response.ok) {
+        setPlatos((actuales) => actuales.map((a) => a.id === plato.id ? { ...a, precio, stock, disponible } : a));
+        registrarCambio(`Actualizó stock/precio de “${plato.nombre}”.`);
+      } else {
+        window.alert("Error al guardar en la base de datos.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setGuardando('');
+    }
   };
 
-  const actualizarPedido = (pedido, nuevoEstado) => {
+  // 3. Actualizar Estado de Pedido en Django (El corazón de la app)
+  const actualizarPedido = async (pedido, nuevoEstado) => {
     let motivo = '';
     if (nuevoEstado === 'CANCELADO') {
       motivo = window.prompt('Escribe el motivo de la cancelación:')?.trim() || '';
       if (!motivo) return;
     }
 
-    setPedidos((actuales) =>
-      actuales.map((actual) =>
-        actual.id === pedido.id
-          ? { ...actual, estado: nuevoEstado, motivo: nuevoEstado === 'CANCELADO' ? motivo : '' }
-          : actual
-      )
-    );
-    registrarCambio(
-      nuevoEstado === 'CANCELADO'
-        ? `Canceló el pedido #${pedido.id}. Motivo: ${motivo}`
-        : `Cambió el pedido #${pedido.id} a ${estadosPedido.find(([valor]) => valor === nuevoEstado)?.[1]}.`
-    );
+    setGuardando(`pedido-${pedido.id}`);
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000/api/pedidos/${pedido.id}/estado/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ estado: nuevoEstado }) // Si tienes campo motivo en el backend, agrégalo aquí
+      });
+
+      if (response.ok) {
+        setPedidos((actuales) => actuales.map((a) => a.id === pedido.id ? { ...a, estado: nuevoEstado, motivo: nuevoEstado === 'CANCELADO' ? motivo : '' } : a));
+        registrarCambio(
+          nuevoEstado === 'CANCELADO'
+            ? `Canceló el pedido #${pedido.id}. Motivo: ${motivo}`
+            : `Movió el pedido #${pedido.id} a ${estadosPedido.find(([valor]) => valor === nuevoEstado)?.[1]}.`
+        );
+      } else {
+        window.alert("No se pudo cambiar el estado del pedido.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setGuardando('');
+    }
   };
 
-  const cerrarDemo = () => navigate('/admin/login');
+  // 4. Cierre de sesión real
+  const cerrarSesion = () => {
+    localStorage.clear(); // Destruimos los tokens
+    navigate('/login');
+  };
+
   const pedidosFiltrados = pedidos.filter(
     (pedido) => filtroPedidos === 'TODOS' || pedido.estado === filtroPedidos
   );
+
+  if (cargando) {
+    return <div style={{ padding: '50px', textAlign: 'center' }}><h2>Conectando con la base de datos...</h2></div>;
+  }
 
   return (
     <main className="admin-page">
@@ -146,7 +176,7 @@ export default function AdminPanel() {
 
         <div className="admin-sidebar-footer">
           <span className="admin-user-avatar" aria-hidden="true">AD</span>
-          <span><strong>Administrador</strong><small>Modo demostración</small></span>
+          <span><strong>Administrador</strong><small>Conectado (En Vivo)</small></span>
         </div>
       </aside>
 
@@ -157,8 +187,8 @@ export default function AdminPanel() {
             <h1>Panel de control</h1>
           </div>
           <div className="admin-topbar-actions">
-            <span className="admin-demo-badge"><span /> DEMO · DATOS LOCALES</span>
-            <button type="button" className="admin-logout" onClick={cerrarDemo}>Salir</button>
+            <span className="admin-demo-badge" style={{ backgroundColor: '#dcfce7', color: '#166534' }}><span style={{ backgroundColor: '#22c55e' }}/> SISTEMA EN LÍNEA</span>
+            <button type="button" className="admin-logout" onClick={cerrarSesion}>Salir</button>
           </div>
         </header>
 
@@ -166,27 +196,23 @@ export default function AdminPanel() {
           <div className="admin-welcome">
             <div>
               <h2>Hola, administrador <span aria-hidden="true">✦</span></h2>
-              <p>Desde aquí puedes supervisar pedidos, menú e inventario.</p>
+              <p>Supervisa los pedidos, el menú y el inventario en tiempo real.</p>
             </div>
-            <span className="admin-date">Vista de demostración</span>
-          </div>
-
-          <div className="admin-prototype-notice" role="note">
-            Este panel es solo una maqueta frontend. Los cambios se mantienen únicamente mientras la página esté abierta; aún no se guardan ni se verifican en el servidor.
+            <span className="admin-date">{new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
           </div>
 
           <section id="resumen" className="admin-summary" aria-label="Resumen de actividad">
             <article className="admin-summary-card">
               <span className="admin-summary-icon summary-purple" aria-hidden="true">▤</span>
-              <div><small>Pedidos de hoy</small><strong>{pedidos.length}</strong><span>en el ejemplo local</span></div>
+              <div><small>Total Pedidos</small><strong>{pedidos.length}</strong><span>registrados</span></div>
             </article>
             <article className="admin-summary-card">
               <span className="admin-summary-icon summary-orange" aria-hidden="true">◷</span>
-              <div><small>Por preparar o entregar</small><strong>{pedidos.filter((pedido) => ['PENDIENTE', 'PREPARACION', 'DESPACHO'].includes(pedido.estado)).length}</strong><span>requieren seguimiento</span></div>
+              <div><small>En Cocina</small><strong>{pedidos.filter((pedido) => ['PENDIENTE', 'PREPARACION'].includes(pedido.estado)).length}</strong><span>requieren atención</span></div>
             </article>
             <article className="admin-summary-card">
               <span className="admin-summary-icon summary-green" aria-hidden="true">◈</span>
-              <div><small>Productos disponibles</small><strong>{platos.filter((plato) => plato.disponible).length}<span className="admin-out-of"> / {platos.length}</span></strong><span>en el menú de ejemplo</span></div>
+              <div><small>Platos Activos</small><strong>{platos.filter((plato) => plato.disponible).length}<span className="admin-out-of"> / {platos.length}</span></strong><span>disponibles</span></div>
             </article>
           </section>
 
@@ -213,8 +239,15 @@ export default function AdminPanel() {
                           {estadosPedido.find(([valor]) => valor === pedido.estado)?.[1]}
                         </span>
                       </div>
-                      <p>{pedido.cliente} <span>·</span> {pedido.hora}</p>
-                      <ul>{pedido.productos.map((producto) => <li key={producto}>{producto}</li>)}</ul>
+                      <p>Cliente N°{pedido.cliente} <span>·</span> {new Date(pedido.creado_en || Date.now()).toLocaleTimeString()}</p>
+                      
+                      {/* Dibujamos los detalles reales que vienen de Django */}
+                      <ul>
+                        {pedido.detalles && pedido.detalles.map((detalle, idx) => (
+                          <li key={idx}>Plato ID {detalle.plato} (x{detalle.cantidad})</li>
+                        ))}
+                      </ul>
+                      
                       {pedido.motivo && <small className="admin-cancel-reason">Motivo de cancelación: {pedido.motivo}</small>}
                     </div>
                   </div>
@@ -249,7 +282,7 @@ export default function AdminPanel() {
               {platos.map((plato) => (
                 <form className="admin-product-row" key={plato.id} onSubmit={(event) => actualizarPlato(event, plato)}>
                   <div className="admin-product-name">
-                    <strong>{plato.nombre}</strong><small>{plato.categoria}</small>
+                    <strong>{plato.nombre}</strong><small>ID: {plato.id}</small>
                   </div>
                   <label className="admin-field-label">
                     <span className="sr-only">Precio de {plato.nombre}</span>
@@ -285,8 +318,6 @@ export default function AdminPanel() {
               ))}
             </div>
           </section>
-
-          <p className="admin-footer-note">Prototipo frontend · Conexión con el backend pendiente</p>
         </div>
       </div>
     </main>
