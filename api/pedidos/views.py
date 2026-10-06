@@ -10,9 +10,29 @@ from catalogo.models import Plato
 from finanzas.services import PagoSaldoCorporativo, PagoPasarelaTarjeta
 
 class ProcesarPedidoView(APIView):
-    # Patrón Facade: Centraliza la lógica compleja[cite: 1]
+    # Patrón Facade: Centraliza la lógica compleja
     
-    @transaction.atomic  # Garantía de Procedimiento Transaccional (ACID)[cite: 1]
+    # ---> EL LECTOR DE PEDIDOS (GET) <---
+    def get(self, request):
+        usuario = request.user
+        
+        # 1. Si el usuario es administrador (staff) o superusuario, ve TODOS los pedidos.
+        if usuario.is_staff or usuario.is_superuser:
+            pedidos = Pedido.objects.all().order_by('-id')
+            
+        # 2. Si es un cliente normal, solo ve los suyos.
+        elif hasattr(usuario, 'perfil_cliente'):
+            pedidos = Pedido.objects.filter(cliente=usuario.perfil_cliente).order_by('-id')
+            
+        # 3. Respaldo de seguridad
+        else:
+            pedidos = Pedido.objects.none()
+            
+        # Traducimos la data de Python a JSON para React
+        serializer = PedidoSerializer(pedidos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @transaction.atomic  # Garantía de Procedimiento Transaccional (ACID)
     def post(self, request):
         usuario = request.user
         items = request.data.get('items', [])
@@ -31,21 +51,21 @@ class ProcesarPedidoView(APIView):
                 total_pedido += subtotal
                 platos_procesados.append({'plato': plato, 'cantidad': item['cantidad'], 'precio': plato.precio})
 
-            # 2. Patrón Strategy: Seleccionar y ejecutar el método de pago[cite: 1]
+            # 2. Patrón Strategy: Seleccionar y ejecutar el método de pago
             if metodo_pago == 'CORPORATIVO':
                 estrategia = PagoSaldoCorporativo()
             else:
                 estrategia = PagoPasarelaTarjeta()
 
-            # Invocación encapsulada al módulo financiero[cite: 1]
+            # Invocación encapsulada al módulo financiero
             pago_exitoso = estrategia.procesar_cobro(usuario, total_pedido)
 
-            # 3. Bifurcación del flujo según resultado (Diagrama de Secuencia)[cite: 1]
+            # 3. Bifurcación del flujo según resultado (Diagrama de Secuencia)
             if not pago_exitoso:
-                # Interrumpe la transacción y retorna el código de estado exacto requerido[cite: 1]
+                # Interrumpe la transacción y retorna el código de estado exacto requerido
                 return Response({"error": "Fondos Insuficientes"}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
-            # 4. Inserción de datos (INSERT INTO) si el pago fue exitoso[cite: 1]
+            # 4. Inserción de datos (INSERT INTO) si el pago fue exitoso
             pedido = Pedido.objects.create(
                 cliente=usuario.perfil_cliente,
                 total=total_pedido,
@@ -60,7 +80,7 @@ class ProcesarPedidoView(APIView):
                     precioUnitario=p['precio']
                 )
 
-            # El commit final a MySQL se realiza automáticamente al terminar el bloque @transaction.atomic sin errores[cite: 1]
+            # El commit final a MySQL se realiza automáticamente al terminar el bloque @transaction.atomic sin errores
             return Response({"mensaje": "Pedido Creado y Pagado Exitosamente", "pedido_id": pedido.id}, status=status.HTTP_201_CREATED)
 
         except Plato.DoesNotExist:
@@ -97,7 +117,7 @@ class ActualizarEstadoPedidoView(APIView):
             estados_validos = dict(Pedido.ESTADOS).keys()
             if nuevo_estado in estados_validos:
                 pedido.estado = nuevo_estado
-                pedido.save()  # Al usar save(), se activará automáticamente tu archivo signals.py[cite: 1]
+                pedido.save()  # Al usar save(), se activará automáticamente tu archivo signals.py
                 
                 return Response({
                     "mensaje": f"Pedido {pedido_id} actualizado a {nuevo_estado}"

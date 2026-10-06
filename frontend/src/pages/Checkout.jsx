@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../CartContext'; // <-- Usamos tu Hook personalizado
+import { useCart } from '../CartContext';
 
 export default function Checkout() { 
   const navigate = useNavigate();
   
-  // Extraemos el carrito y la función para limpiarlo usando tu hook
   const { carrito, setCarrito } = useCart() || { carrito: [] };
   const itemsCarrito = carrito || []; 
   
@@ -13,15 +12,16 @@ export default function Checkout() {
   const [tipoEntrega, setTipoEntrega] = useState('delivery');
   
   const tipoClienteActual = localStorage.getItem('tipoCliente') || 'normal'; 
-  const [metodoPago, setMetodoPago] = useState(tipoClienteActual === 'empresa' ? 'convenio_empresa' : 'tarjeta');
+  const [metodoPago, setMetodoPago] = useState(tipoClienteActual === 'empresa' ? 'CORPORATIVO' : 'TARJETA');
 
   const totalCarrito = itemsCarrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
   const handleSubmitPedido = async (e) => {
     e.preventDefault();
 
-    const detallesPedido = itemsCarrito.map(item => ({
-      plato: item.id,
+    // Ajuste 1: El backend espera 'plato_id' en lugar de 'plato'
+    const itemsPedido = itemsCarrito.map(item => ({
+      plato_id: item.id, 
       cantidad: item.cantidad,
       precio: item.precio
     }));
@@ -31,7 +31,7 @@ export default function Checkout() {
       observaciones: notas,
       tipo_entrega: tipoEntrega,
       metodo_pago: metodoPago,
-      detalles: detallesPedido
+      items: itemsPedido // Ajuste 2: El backend espera 'items' en lugar de 'detalles'
     };
 
     try {
@@ -48,13 +48,24 @@ export default function Checkout() {
       if (response.ok) {
         const data = await response.json();
         
-        // ¡Vaciamos el carrito porque la compra fue un éxito!
+        // Armamos el objeto 'pedido' con el ID que devolvió Django y los datos locales para el Comprobante
+        const pedidoConfirmado = {
+          id: data.pedido_id,
+          total: totalCarrito,
+          detalles: itemsCarrito.map(item => ({
+            plato: item.id,
+            nombre: item.nombre,
+            cantidad: item.cantidad,
+            precio: item.precio
+          }))
+        };
+
         if (setCarrito) setCarrito([]); 
-        
-        // Viajamos al comprobante
-        navigate('/comprobante', { state: { pedido: data } }); 
+        navigate('/comprobante', { state: { pedido: pedidoConfirmado } }); 
       } else {
-        alert("Hubo un problema al procesar tu pedido. Verifica tu sesión.");
+        const errorData = await response.json();
+        console.error("Error completo de Django:", errorData);
+        alert("Django dice:\n\n" + JSON.stringify(errorData, null, 2));
       }
     } catch (error) {
       console.error("Error de conexión:", error);
@@ -126,7 +137,7 @@ export default function Checkout() {
           <div style={{ marginBottom: '30px' }}>
             <label style={{ display: 'block', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Medio de pago:</label>
             <div style={{ padding: '15px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: '#f9fafb', color: '#4b5563', fontWeight: '500' }}>
-              💳 Tarjeta (Transbank) - Pago seguro en línea
+              💳 Tarjeta (Transbank) o Saldo Corporativo
             </div>
           </div>
 
