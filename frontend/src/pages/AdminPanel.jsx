@@ -26,6 +26,12 @@ export default function AdminPanel() {
   const [filtroPedidos, setFiltroPedidos] = useState('TODOS');
   const [guardando, setGuardando] = useState('');
   const [cargando, setCargando] = useState(true);
+  
+  // NUEVOS ESTADOS: Para manejar el formulario de recarga de saldo
+  const [rutRecarga, setRutRecarga] = useState('');
+  const [montoRecarga, setMontoRecarga] = useState('');
+  const [mensajeRecarga, setMensajeRecarga] = useState(null); // Guardará { tipo: 'exito' | 'error', texto: '...' }
+
   const navigate = useNavigate();
 
   // 1. Cargar datos reales al abrir el panel
@@ -38,15 +44,14 @@ export default function AdminPanel() {
       const token = localStorage.getItem('access_token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      // Consultar Pedidos
       const resPedidos = await fetch('http://localhost:8000/api/pedidos/', { headers });
       if (resPedidos.ok) {
         const dataPedidos = await resPedidos.json();
         setPedidos(dataPedidos);
       }
 
-      // Consultar Platos (Asegúrate de que esta URL coincida con tu backend)
-      const resPlatos = await fetch('http://localhost:8000/api/catalogo/platos/', { headers });
+      // IMPORTANTE: Asegúrate de que esta URL sea la correcta (ayer le quitamos el /platos/ extra)
+      const resPlatos = await fetch('http://localhost:8000/api/catalogo/', { headers });
       if (resPlatos.ok) {
         const dataPlatos = await resPlatos.json();
         setPlatos(dataPlatos);
@@ -66,7 +71,45 @@ export default function AdminPanel() {
     ]);
   };
 
-  // 2. Actualizar Inventario en Django
+  // 2. NUEVA FUNCIÓN: Conectar con la API para inyectar dinero al Cliente Corporativo
+  const manejarRecargaSaldo = async (e) => {
+    e.preventDefault();
+    setGuardando('recarga');
+    setMensajeRecarga(null);
+
+    try {
+      const token = localStorage.getItem('access_token');
+      // Asegúrate de que la ruta coincida con la que pusiste en tu urls.py de usuarios
+      const response = await fetch('http://localhost:8000/api/recargar-saldo/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          rut: rutRecarga, 
+          monto: parseInt(montoRecarga) 
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMensajeRecarga({ tipo: 'exito', texto: data.mensaje });
+        setRutRecarga(''); // Limpiamos el formulario
+        setMontoRecarga('');
+        registrarCambio(`Inyección de fondos: $${montoRecarga} al RUT ${rutRecarga}`);
+      } else {
+        setMensajeRecarga({ tipo: 'error', texto: data.error || 'Error al recargar saldo.' });
+      }
+    } catch (error) {
+      setMensajeRecarga({ tipo: 'error', texto: 'No se pudo conectar con el servidor.' });
+    } finally {
+      setGuardando('');
+    }
+  };
+
+  // 3. Actualizar Inventario en Django
   const actualizarPlato = async (event, plato) => {
     event.preventDefault();
     const valores = new FormData(event.currentTarget);
@@ -83,8 +126,7 @@ export default function AdminPanel() {
     
     try {
       const token = localStorage.getItem('access_token');
-      // Petición PATCH para actualizar solo stock, precio y disponibilidad
-      const response = await fetch(`http://localhost:8000/api/catalogo/platos/${plato.id}/`, {
+      const response = await fetch(`http://localhost:8000/api/catalogo/${plato.id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +148,7 @@ export default function AdminPanel() {
     }
   };
 
-  // 3. Actualizar Estado de Pedido en Django (El corazón de la app)
+  // 4. Actualizar Estado de Pedido en Django
   const actualizarPedido = async (pedido, nuevoEstado) => {
     let motivo = '';
     if (nuevoEstado === 'CANCELADO') {
@@ -124,7 +166,7 @@ export default function AdminPanel() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ estado: nuevoEstado }) // Si tienes campo motivo en el backend, agrégalo aquí
+        body: JSON.stringify({ estado: nuevoEstado })
       });
 
       if (response.ok) {
@@ -144,9 +186,8 @@ export default function AdminPanel() {
     }
   };
 
-  // 4. Cierre de sesión real
   const cerrarSesion = () => {
-    localStorage.clear(); // Destruimos los tokens
+    localStorage.clear();
     navigate('/login');
   };
 
@@ -155,7 +196,7 @@ export default function AdminPanel() {
   );
 
   if (cargando) {
-    return <div style={{ padding: '50px', textAlign: 'center' }}><h2>Conectando con la base de datos...</h2></div>;
+    return <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'system-ui' }}><h2 style={{ color: '#2e1065' }}>Conectando con la base de datos...</h2></div>;
   }
 
   return (
@@ -169,6 +210,7 @@ export default function AdminPanel() {
         <p className="admin-nav-label">ADMINISTRACIÓN</p>
         <nav className="admin-nav" aria-label="Navegación de administración">
           <a className="admin-nav-link is-active" href="#resumen"><span aria-hidden="true">▦</span> Resumen</a>
+          <a className="admin-nav-link" href="#finanzas"><span aria-hidden="true">💰</span> Finanzas B2B</a>
           <a className="admin-nav-link" href="#pedidos"><span aria-hidden="true">▤</span> Pedidos</a>
           <a className="admin-nav-link" href="#inventario"><span aria-hidden="true">◈</span> Precios y stock</a>
           <a className="admin-nav-link" href="#auditoria"><span aria-hidden="true">↻</span> Actividad</a>
@@ -196,7 +238,7 @@ export default function AdminPanel() {
           <div className="admin-welcome">
             <div>
               <h2>Hola, administrador <span aria-hidden="true">✦</span></h2>
-              <p>Supervisa los pedidos, el menú y el inventario en tiempo real.</p>
+              <p>Supervisa los pedidos, inyecta fondos y controla el menú en tiempo real.</p>
             </div>
             <span className="admin-date">{new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
           </div>
@@ -214,6 +256,58 @@ export default function AdminPanel() {
               <span className="admin-summary-icon summary-green" aria-hidden="true">◈</span>
               <div><small>Platos Activos</small><strong>{platos.filter((plato) => plato.disponible).length}<span className="admin-out-of"> / {platos.length}</span></strong><span>disponibles</span></div>
             </article>
+          </section>
+
+          {/* NUEVA SECCIÓN: BILLETERA CORPORATIVA */}
+          <section id="finanzas" className="admin-section">
+            <div className="admin-section-heading">
+              <div><p className="admin-eyebrow">CONVENIOS</p><h2>Recargar Billetera Corporativa</h2></div>
+            </div>
+            <div style={{ background: '#ffffff', padding: '25px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+              <p style={{ color: '#4b5563', marginBottom: '20px', fontSize: '0.95rem' }}>
+                Ingresa el RUT de un Cliente Corporativo registrado para inyectar fondos a su cuenta.
+              </p>
+              
+              <form onSubmit={manejarRecargaSaldo} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>RUT del Cliente</label>
+                  <input 
+                    type="text" 
+                    value={rutRecarga} 
+                    onChange={(e) => setRutRecarga(e.target.value)}
+                    placeholder="Ej: 12345678-9" 
+                    required
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Monto a Inyectar ($)</label>
+                  <input 
+                    type="number" 
+                    value={montoRecarga} 
+                    onChange={(e) => setMontoRecarga(e.target.value)}
+                    min="1" 
+                    placeholder="Ej: 50000" 
+                    required
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', outline: 'none' }}
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={guardando === 'recarga'}
+                  style={{ padding: '10px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700', cursor: guardando === 'recarga' ? 'not-allowed' : 'pointer', height: '42px' }}
+                >
+                  {guardando === 'recarga' ? 'Procesando...' : '💰 Recargar Saldo'}
+                </button>
+              </form>
+
+              {/* Mensajes de feedback (Éxito o Error) */}
+              {mensajeRecarga && (
+                <div style={{ marginTop: '20px', padding: '12px', borderRadius: '6px', backgroundColor: mensajeRecarga.tipo === 'exito' ? '#ecfdf5' : '#fef2f2', border: `1px solid ${mensajeRecarga.tipo === 'exito' ? '#a7f3d0' : '#fecaca'}`, color: mensajeRecarga.tipo === 'exito' ? '#065f46' : '#991b1b', fontWeight: '500', fontSize: '0.9rem' }}>
+                  {mensajeRecarga.tipo === 'exito' ? '✅ ' : '⚠️ '} {mensajeRecarga.texto}
+                </div>
+              )}
+            </div>
           </section>
 
           <section id="pedidos" className="admin-section">
@@ -241,12 +335,19 @@ export default function AdminPanel() {
                       </div>
                       <p>Cliente N°{pedido.cliente} <span>·</span> {new Date(pedido.creado_en || Date.now()).toLocaleTimeString()}</p>
                       
-                      {/* Dibujamos los detalles reales que vienen de Django */}
-                      <ul>
+                      <ul style={{ margin: '10px 0', paddingLeft: '20px', color: '#4b5563', fontSize: '0.9rem' }}>
                         {pedido.detalles && pedido.detalles.map((detalle, idx) => (
-                          <li key={idx}>Plato ID {detalle.plato} (x{detalle.cantidad})</li>
+                          <li key={idx} style={{ marginBottom: '4px' }}>
+                            {detalle.cantidad}x Plato ID {detalle.plato} - ${detalle.precioUnitario}
+                          </li>
                         ))}
                       </ul>
+                      
+                      {pedido.observaciones && (
+                        <div style={{ backgroundColor: '#fffbeb', padding: '8px', borderRadius: '6px', fontSize: '0.85rem', color: '#92400e', marginBottom: '10px', border: '1px solid #fde68a' }}>
+                          <strong>📝 Notas:</strong> {pedido.observaciones}
+                        </div>
+                      )}
                       
                       {pedido.motivo && <small className="admin-cancel-reason">Motivo de cancelación: {pedido.motivo}</small>}
                     </div>
