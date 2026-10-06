@@ -1,6 +1,8 @@
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Delivery.css';
 
+// Mantenemos los datos del repartidor estáticos por ahora (hasta que conectemos el Perfil)
 const repartidor = {
   nombre: 'Camila Ramírez',
   iniciales: 'CR',
@@ -11,56 +13,10 @@ const repartidor = {
   codigo: 'DEL-024',
 };
 
-const pedidosEnCurso = [
-  {
-    numero: '#PED-1084',
-    cliente: 'Valentina Soto',
-    direccion: 'Av. Nueva Providencia 1840, depto. 602',
-    referencia: 'Tocar el timbre del 602',
-    platos: [
-      { nombre: 'Hamburguesa clásica', cantidad: 2 },
-      { nombre: 'Papas rústicas', cantidad: 1 },
-      { nombre: 'Limonada natural', cantidad: 2 },
-    ],
-    total: 24800,
-    estado: 'En camino',
-  },
-  {
-    numero: '#PED-1087',
-    cliente: 'Diego Fernández',
-    direccion: 'Los Leones 735, oficina 402',
-    referencia: 'Entregar en recepción',
-    platos: [
-      { nombre: 'Pizza margarita', cantidad: 1 },
-      { nombre: 'Ensalada César', cantidad: 1 },
-    ],
-    total: 21900,
-    estado: 'Preparando',
-  },
-];
-
+// Mantenemos el historial estático como demostración visual
 const pedidosCompletados = [
-  {
-    numero: '#PED-1081',
-    cliente: 'Isidora Muñoz',
-    resumen: '2 platos · 1 bebida',
-    fecha: 'Hoy, 13:42',
-    total: 18900,
-  },
-  {
-    numero: '#PED-1076',
-    cliente: 'Martín Rojas',
-    resumen: '1 plato · 2 acompañamientos',
-    fecha: 'Hoy, 12:18',
-    total: 27600,
-  },
-  {
-    numero: '#PED-1069',
-    cliente: 'Antonia Silva',
-    resumen: '3 platos · 2 bebidas',
-    fecha: 'Ayer, 20:35',
-    total: 34200,
-  },
+  { numero: '#PED-1081', cliente: 'Isidora Muñoz', resumen: '2 platos · 1 bebida', fecha: 'Hoy, 13:42', total: 18900 },
+  { numero: '#PED-1076', cliente: 'Martín Rojas', resumen: '1 plato · 2 acompañamientos', fecha: 'Hoy, 12:18', total: 27600 },
 ];
 
 const formatoPrecio = (precio) =>
@@ -71,6 +27,61 @@ const formatoPrecio = (precio) =>
   }).format(precio);
 
 function Delivery() {
+  // 1. ESTADOS DE REACT: Guardarán la información que viene de Django
+  const [pedidosActivos, setPedidosActivos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+
+  // 2. EFECTO DE CARGA: Se ejecuta automáticamente al abrir la página
+  useEffect(() => {
+    cargarPedidosEnDespacho();
+  }, []);
+
+  // 3. PUENTE DE LECTURA (GET): Va a buscar los pedidos con estado 'DESPACHO'
+  const cargarPedidosEnDespacho = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/api/pedidos/despacho/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setPedidosActivos(data); // Guardamos los pedidos reales en el estado
+      }
+    } catch (error) {
+      console.error("Error al cargar los pedidos:", error);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // 4. PUENTE DE ACCIÓN (PATCH): Avisa a Django que el pedido fue entregado
+  const marcarComoEntregado = async (pedidoId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000/api/pedidos/${pedidoId}/estado/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ estado: 'ENTREGADO' })
+      });
+
+      if (response.ok) {
+        // Si Django confirma la actualización, sacamos el pedido de la pantalla
+        setPedidosActivos(pedidosActivos.filter(p => p.id !== pedidoId));
+        alert(`Pedido #${pedidoId} marcado como entregado.`);
+      } else {
+        alert("Hubo un problema al actualizar el estado.");
+      }
+    } catch (error) {
+      console.error("Error al actualizar:", error);
+    }
+  };
+
   return (
     <div className="delivery-page">
       <aside className="delivery-sidebar">
@@ -148,7 +159,8 @@ function Delivery() {
           </article>
           <article className="delivery-stat-card">
             <span className="delivery-stat-icon stat-orange" aria-hidden="true">↗</span>
-            <div><small>En curso</small><strong>{pedidosEnCurso.length}</strong></div>
+            {/* Vinculamos el contador a la cantidad real de pedidos en la BD */}
+            <div><small>En curso</small><strong>{pedidosActivos.length}</strong></div>
             <span className="delivery-stat-note">ahora</span>
           </article>
           <article className="delivery-stat-card">
@@ -164,41 +176,55 @@ function Delivery() {
               <span className="delivery-eyebrow">EN TIEMPO REAL</span>
               <h2 id="delivery-active-title">Pedidos en curso</h2>
             </div>
-            <span className="delivery-count">{pedidosEnCurso.length} activos</span>
+            <span className="delivery-count">{pedidosActivos.length} activos</span>
           </div>
 
           <div className="delivery-active-orders">
-            {pedidosEnCurso.map((pedido) => (
-              <article className="delivery-order-card" key={pedido.numero}>
-                <div className="delivery-order-heading">
-                  <span className="delivery-order-number">{pedido.numero}</span>
-                  <span className={`delivery-status ${pedido.estado === 'En camino' ? 'status-transit' : 'status-preparing'}`}>
-                    <span />{pedido.estado}
-                  </span>
-                </div>
-                <div className="delivery-customer">
-                  <span className="delivery-customer-icon" aria-hidden="true">♙</span>
-                  <div><small>Cliente</small><strong>{pedido.cliente}</strong></div>
-                </div>
-                <div className="delivery-address">
-                  <span className="delivery-detail-icon" aria-hidden="true">⌖</span>
-                  <div><small>Dirección de entrega</small><strong>{pedido.direccion}</strong><p>{pedido.referencia}</p></div>
-                </div>
-                <div className="delivery-order-items">
-                  <small>Lo que pidió</small>
-                  <ul>
-                    {pedido.platos.map((plato) => (
-                      <li key={plato.nombre}>
-                        <span>{plato.nombre}</span><span>× {plato.cantidad}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="delivery-order-total">
-                  <span>Total del pedido</span><strong>{formatoPrecio(pedido.total)}</strong>
-                </div>
-              </article>
-            ))}
+            {cargando ? (
+              <p>Cargando rutas asignadas...</p>
+            ) : pedidosActivos.length === 0 ? (
+              <p style={{ color: '#6b7280', padding: '20px' }}>No tienes pedidos pendientes de entrega en este momento.</p>
+            ) : (
+              // 5. RENDERIZADO DINÁMICO: Dibujamos las tarjetas usando los datos de Django
+              pedidosActivos.map((pedido) => (
+                <article className="delivery-order-card" key={pedido.id}>
+                  <div className="delivery-order-heading">
+                    <span className="delivery-order-number">#PED-{pedido.id}</span>
+                    <span className="delivery-status status-transit">
+                      <span />{pedido.estado}
+                    </span>
+                  </div>
+                  
+                  <div className="delivery-customer">
+                    <span className="delivery-customer-icon" aria-hidden="true">♙</span>
+                    <div><small>ID Cliente</small><strong>Cliente N°{pedido.cliente}</strong></div>
+                  </div>
+                  
+                  <div className="delivery-order-items">
+                    <small>Resumen de carga</small>
+                    <ul>
+                      {pedido.detalles.map((detalle, index) => (
+                        <li key={index}>
+                          <span>Plato ID: {detalle.plato}</span><span>× {detalle.cantidad}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="delivery-order-total">
+                    <span>Monto a cobrar/verificar</span><strong>{formatoPrecio(pedido.total)}</strong>
+                  </div>
+
+                  {/* 6. BOTÓN DE ACCIÓN: Ejecuta el PATCH hacia la base de datos */}
+                  <button 
+                    onClick={() => marcarComoEntregado(pedido.id)}
+                    style={{ marginTop: '15px', width: '100%', padding: '12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    ✓ Marcar Entrega Exitosa
+                  </button>
+                </article>
+              ))
+            )}
           </div>
         </section>
 
@@ -208,7 +234,7 @@ function Delivery() {
               <span className="delivery-eyebrow">TU ACTIVIDAD</span>
               <h2 id="delivery-history-title">Pedidos transportados</h2>
             </div>
-            <span className="delivery-history-total">Últimas entregas</span>
+            <span className="delivery-history-total">Últimas entregas (Demo)</span>
           </div>
           <div className="delivery-history-list">
             {pedidosCompletados.map((pedido) => (
@@ -225,10 +251,6 @@ function Delivery() {
             ))}
           </div>
         </section>
-
-        <p className="delivery-demo-note">
-          Información de ejemplo. Los datos se conectarán al backend en una siguiente etapa.
-        </p>
       </main>
     </div>
   );
