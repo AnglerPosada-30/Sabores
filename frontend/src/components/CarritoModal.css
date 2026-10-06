@@ -1,0 +1,158 @@
+/* CarritoModal.css */
+
+/* Fondo oscuro transparente */
+.checkout-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Panel lateral blanco */
+.checkout-content {
+  width: 100%;
+  max-width: 420px;
+  height: 100dvh; /* dvh se adapta mejor si lo abres en un celular */
+  background-color: #ffffff;
+  box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 25px;
+  box-sizing: border-box; /* <--- LA LÍNEA MÁGICA: Evita que el padding rompa la altura */
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Encabezado */
+.checkout-content h2 {
+  color: #2e1065;
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f3e8ff;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+/* Zona central donde van los productos (con scroll si hay muchos) */
+.checkout-seccion {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  min-height: 0; /* <--- Ayuda a que el scroll funcione perfecto en pantallas pequeñas */
+}
+
+/* Lista de productos */
+.checkout-lista-productos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.checkout-lista-productos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.item-nombre {
+  font-weight: 700;
+  color: #374151;
+}
+
+.item-precio {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Controles de sumar/restar */
+.item-controles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.btn-control {
+  background: none;
+  border: none;
+  color: #7c3aed;
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.btn-control:hover {
+  color: #5b21b6;
+}
+
+/* Total y botones de acción */
+.checkout-total {
+  font-size: 1.3rem;
+  color: #2e1065;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-top: 15px;
+  border-top: 2px dashed #ddd6fe;
+}
+
+.checkout-acciones {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-secundario {
+  flex: 1;
+  padding: 14px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-primario {
+  flex: 2;
+  padding: 14px;
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.btn-primario:hover {
+  background-color: #6d28d9;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}

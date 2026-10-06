@@ -7,6 +7,10 @@ export default function MenuDetallado() {
   const [categoriaActiva, setCategoriaActiva] = useState('platos');
   const { agregarAlPedido, setVerCarrito, totalItems } = useCart();
 
+  // Leemos los datos de la billetera corporativa desde el navegador
+  const tipoCliente = localStorage.getItem('tipoCliente') || 'normal';
+  const saldoCorporativo = parseFloat(localStorage.getItem('saldoCorporativo') || '0');
+
   const [cartaCompleta, setCartaCompleta] = useState({
     platos: [],
     bebestibles: [],
@@ -45,11 +49,10 @@ export default function MenuDetallado() {
       } catch (error) {
         console.warn("Backend no disponible temporalmente. Usando datos de prueba locales para maquetar:", error);
         
-        // DATOS DE PRUEBA (Mock): Solo para que veas cómo se ve la interfaz mientras tu compañero termina el backend
         setCartaCompleta({
           platos: [
             { id: 1, nombre: 'Cazuela de Aves', desc: 'Delicioso plato casero con choclo y zapallo.', precio: 6500, icon: '🍲', proveedor: 'El Comilón' },
-            { id: 2, nombre: 'pastel de Choclo', desc: 'Tradicional pastel de choclo en greda.', precio: 7000, icon: '🌽', proveedor: 'El Comilón' }
+            { id: 2, nombre: 'Pastel de Choclo', desc: 'Tradicional pastel de choclo en greda.', precio: 7000, icon: '🌽', proveedor: 'El Comilón' }
           ],
           bebestibles: [
             { id: 3, nombre: 'Jugo Natural de Frambuesa', desc: 'Medio litro fresco del día.', precio: 2500, icon: '🧃', proveedor: 'El Comilón' }
@@ -91,17 +94,30 @@ export default function MenuDetallado() {
           <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#2e1065' }}>CARTA EL COMILÓN</h2>
         </div>
 
-        <button 
-          onClick={() => setVerCarrito(true)}
-          style={{ 
-            backgroundColor: '#ffffff', border: 'none', padding: '8px 16px', 
-            borderRadius: '20px', fontSize: '0.9rem', fontWeight: '800', 
-            display: 'flex', alignItems: 'center', gap: '8px', color: '#5b21b6', 
-            cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' 
-          }}
-        >
-          🛒 <span>Carrito ({totalItems})</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {/* BILLETERA CORPORATIVA: Solo se muestra si el cliente es tipo empresa */}
+          {tipoCliente === 'empresa' && (
+            <div style={{ 
+              backgroundColor: '#10b981', color: '#ffffff', padding: '6px 14px', 
+              borderRadius: '20px', fontSize: '0.85rem', fontWeight: '800', 
+              display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' 
+            }}>
+              💼 Saldo: ${saldoCorporativo.toLocaleString('es-CL')}
+            </div>
+          )}
+
+          <button 
+            onClick={() => setVerCarrito(true)}
+            style={{ 
+              backgroundColor: '#ffffff', border: 'none', padding: '8px 16px', 
+              borderRadius: '20px', fontSize: '0.9rem', fontWeight: '800', 
+              display: 'flex', alignItems: 'center', gap: '8px', color: '#5b21b6', 
+              cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' 
+            }}
+          >
+            🛒 <span>Carrito ({totalItems})</span>
+          </button>
+        </div>
       </nav>
 
       {/* CONTENIDO PRINCIPAL */}

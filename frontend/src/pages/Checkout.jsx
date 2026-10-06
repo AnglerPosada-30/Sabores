@@ -11,15 +11,22 @@ export default function Checkout() {
   const [notas, setNotas] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState('delivery');
   
+  // Datos de la billetera corporativa
   const tipoClienteActual = localStorage.getItem('tipoCliente') || 'normal'; 
+  const saldoCorporativo = parseFloat(localStorage.getItem('saldoCorporativo') || '0');
+  
   const [metodoPago, setMetodoPago] = useState(tipoClienteActual === 'empresa' ? 'CORPORATIVO' : 'TARJETA');
 
   const totalCarrito = itemsCarrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
+  // Lógica de negocio: Validamos si le alcanza el dinero
+  const saldoInsuficiente = tipoClienteActual === 'empresa' && totalCarrito > saldoCorporativo;
+  const botonDeshabilitado = itemsCarrito.length === 0 || saldoInsuficiente;
+
   const handleSubmitPedido = async (e) => {
     e.preventDefault();
+    if (saldoInsuficiente) return; // Doble seguridad
 
-    // Ajuste 1: El backend espera 'plato_id' en lugar de 'plato'
     const itemsPedido = itemsCarrito.map(item => ({
       plato_id: item.id, 
       cantidad: item.cantidad,
@@ -31,7 +38,7 @@ export default function Checkout() {
       observaciones: notas,
       tipo_entrega: tipoEntrega,
       metodo_pago: metodoPago,
-      items: itemsPedido // Ajuste 2: El backend espera 'items' en lugar de 'detalles'
+      items: itemsPedido 
     };
 
     try {
@@ -48,7 +55,6 @@ export default function Checkout() {
       if (response.ok) {
         const data = await response.json();
         
-        // Armamos el objeto 'pedido' con el ID que devolvió Django y los datos locales para el Comprobante
         const pedidoConfirmado = {
           id: data.pedido_id,
           total: totalCarrito,
@@ -60,15 +66,19 @@ export default function Checkout() {
           }))
         };
 
+        // Si es empresa, actualizamos el saldo en el frontend restando lo que gastó
+        if (tipoClienteActual === 'empresa') {
+          const nuevoSaldo = saldoCorporativo - totalCarrito;
+          localStorage.setItem('saldoCorporativo', nuevoSaldo);
+        }
+
         if (setCarrito) setCarrito([]); 
         navigate('/comprobante', { state: { pedido: pedidoConfirmado } }); 
       } else {
         const errorData = await response.json();
-        console.error("Error completo de Django:", errorData);
-        alert("Django dice:\n\n" + JSON.stringify(errorData, null, 2));
+        alert("Atención:\n\n" + (errorData.error || "No se pudo procesar el pago."));
       }
     } catch (error) {
-      console.error("Error de conexión:", error);
       alert("No se pudo conectar con el servidor.");
     }
   };
@@ -133,12 +143,34 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Medio de Pago */}
+          {/* Medio de Pago Inteligente */}
           <div style={{ marginBottom: '30px' }}>
             <label style={{ display: 'block', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Medio de pago:</label>
-            <div style={{ padding: '15px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: '#f9fafb', color: '#4b5563', fontWeight: '500' }}>
-              💳 Tarjeta (Transbank) o Saldo Corporativo
-            </div>
+            
+            {tipoClienteActual === 'empresa' ? (
+              <div style={{ padding: '15px', border: saldoInsuficiente ? '2px solid #ef4444' : '2px solid #10b981', borderRadius: '8px', backgroundColor: saldoInsuficiente ? '#fef2f2' : '#f0fdf4' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ color: saldoInsuficiente ? '#991b1b' : '#166534', fontWeight: '700' }}>💼 Convenio Corporativo</span>
+                  <span style={{ fontSize: '1.2rem', fontWeight: '800', color: saldoInsuficiente ? '#dc2626' : '#059669' }}>
+                    Saldo: ${saldoCorporativo.toLocaleString('es-CL')}
+                  </span>
+                </div>
+                
+                {saldoInsuficiente ? (
+                  <p style={{ margin: 0, color: '#dc2626', fontSize: '0.9rem', fontWeight: '600' }}>
+                    ⚠️ Tu saldo no es suficiente para cubrir el total de esta compra.
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, color: '#059669', fontSize: '0.9rem', fontWeight: '500' }}>
+                    Tendrás un saldo restante de ${(saldoCorporativo - totalCarrito).toLocaleString('es-CL')} tras esta compra.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div style={{ padding: '15px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: '#f9fafb', color: '#4b5563', fontWeight: '500' }}>
+                💳 Tarjeta (Transbank) - Pago seguro en línea
+              </div>
+            )}
           </div>
 
           {/* Botones */}
@@ -152,10 +184,17 @@ export default function Checkout() {
             </button>
             <button 
               type="submit" 
-              disabled={itemsCarrito.length === 0}
-              style={{ flex: 2, padding: '14px', backgroundColor: itemsCarrito.length === 0 ? '#9ca3af' : '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: itemsCarrito.length === 0 ? 'not-allowed' : 'pointer', fontSize: '1rem', boxShadow: itemsCarrito.length === 0 ? 'none' : '0 4px 12px rgba(124,58,237,0.3)' }}
+              disabled={botonDeshabilitado}
+              style={{ 
+                flex: 2, padding: '14px', 
+                backgroundColor: botonDeshabilitado ? '#9ca3af' : '#7c3aed', 
+                color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', 
+                cursor: botonDeshabilitado ? 'not-allowed' : 'pointer', fontSize: '1rem', 
+                boxShadow: botonDeshabilitado ? 'none' : '0 4px 12px rgba(124,58,237,0.3)',
+                transition: 'all 0.3s'
+              }}
             >
-              {itemsCarrito.length === 0 ? 'Carrito Vacío' : 'Pagar y Confirmar'}
+              {saldoInsuficiente ? 'Saldo Insuficiente' : itemsCarrito.length === 0 ? 'Carrito Vacío' : 'Pagar y Confirmar'}
             </button>
           </div>
 

@@ -66,7 +66,7 @@ export default function Catalogo() {
           <Link to="/login" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Iniciar Sesión</Link>
           <Link to="/registro" style={{ color: '#2e1065', textDecoration: 'none', fontWeight: '700' }}>Regístrate aquí</Link>
           <Link
-            to="/admin/login"
+            to="/login"
             style={{
               padding: '7px 13px',
               borderRadius: '20px',

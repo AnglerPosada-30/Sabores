@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import RutaProtegida from './components/RutaProtegida';
-import { CartProvider } from './CartContext'; // Proveedor global del carrito
+import { CartProvider } from './CartContext'; 
 
 // Importación de páginas
 import Catalogo from './pages/Catalogo';
@@ -12,7 +12,6 @@ import Comprobante from './pages/Comprobante';
 import MenuDetallado from './pages/MenuDetallado';
 import Delivery from './pages/Delivery';
 import Checkout from './pages/Checkout';
-import AdminLogin from './pages/AdminLogin';
 import AdminPanel from './pages/AdminPanel';
 
 function App() {
@@ -20,17 +19,17 @@ function App() {
     <CartProvider>
       <Router>
         <Routes>
-          {/* 1. RUTAS PÚBLICAS (Cualquiera puede entrar sin iniciar sesión) */}
-          <Route path="/" element={<Catalogo />} /> {/* Asumiendo que el Catálogo es tu Home */}
+          {/* 1. RUTAS PÚBLICAS */}
+          <Route path="/" element={<Catalogo />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
 
-          {/* 2. RUTAS PROTEGIDAS PARA CLIENTES Y ADMINISTRADORES */}
+          {/* 2. RUTAS PROTEGIDAS PARA CLIENTES (NORMALES Y CORPORATIVOS) Y ADMINS */}
           <Route 
             path="/menu" 
             element={
-              <RutaProtegida rolesPermitidos={['CLIENTE', 'ADMIN']}>
+              // AQUÍ ESTÁ LA MAGIA: Agregamos 'CLIENTE_CORP'
+              <RutaProtegida rolesPermitidos={['CLIENTE', 'CLIENTE_CORP', 'ADMIN']}>
                 <MenuDetallado />
               </RutaProtegida>
             } 
@@ -38,7 +37,7 @@ function App() {
           <Route 
             path="/checkout" 
             element={
-              <RutaProtegida rolesPermitidos={['CLIENTE', 'ADMIN']}>
+              <RutaProtegida rolesPermitidos={['CLIENTE', 'CLIENTE_CORP', 'ADMIN']}>
                 <Checkout />
               </RutaProtegida>
             } 
@@ -46,7 +45,7 @@ function App() {
           <Route 
             path="/comprobante" 
             element={
-              <RutaProtegida rolesPermitidos={['CLIENTE', 'ADMIN']}>
+              <RutaProtegida rolesPermitidos={['CLIENTE', 'CLIENTE_CORP', 'ADMIN']}>
                 <Comprobante />
               </RutaProtegida>
             } 
@@ -54,7 +53,7 @@ function App() {
           <Route 
             path="/mis-pedidos" 
             element={
-              <RutaProtegida rolesPermitidos={['CLIENTE']}>
+              <RutaProtegida rolesPermitidos={['CLIENTE', 'CLIENTE_CORP']}>
                 <Pedidos />
               </RutaProtegida>
             } 

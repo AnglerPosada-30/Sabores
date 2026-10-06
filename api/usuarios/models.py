@@ -39,6 +39,9 @@ class PerfilCliente(models.Model):
     # Si este campo es nulo, es un Cliente Regular. Si tiene una empresa, es ClienteRegistrado (Corporativo)
     empresa_convenio = models.ForeignKey(EmpresaConvenio, on_delete=models.SET_NULL, null=True, blank=True)
 
+    # NUEVO CAMPO: La billetera real en la base de datos
+    saldo = models.IntegerField(default=0)
+    
     def __str__(self):
         return f"Perfil Cliente: {self.usuario.username}"
 
