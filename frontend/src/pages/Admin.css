@@ -473,7 +473,7 @@
 .admin-out-of {
   display: inline !important;
   color: #9aa49d !important;
-  font-size: 10px !important;
+  font-size: 14px !important;
   font-weight: 500;
 }
 
@@ -904,5 +904,53 @@
 @media (prefers-reduced-motion: reduce) {
   .admin-nav-link {
     transition: none;
+  }
+}
+
+.admin-page :is(
+  .admin-brand strong,
+  .admin-brand small,
+  .admin-kicker,
+  .admin-eyebrow,
+  .admin-demo-notice,
+  .admin-prototype-notice,
+  .admin-nav-label,
+  .admin-nav-link,
+  .admin-sidebar-footer strong,
+  .admin-sidebar-footer small,
+  .admin-breadcrumb,
+  .admin-demo-badge,
+  .admin-logout,
+  .admin-welcome p,
+  .admin-date,
+  .admin-section-caption,
+  .admin-summary-card small,
+  .admin-summary-card div > span,
+  .admin-section select,
+  .admin-order-title > strong,
+  .admin-status,
+  .admin-order-details > p,
+  .admin-order-details ul,
+  .admin-order-controls > strong,
+  .admin-order-controls select,
+  .admin-cancel-reason,
+  .admin-inventory-header,
+  .admin-product-name strong,
+  .admin-product-name small,
+  .admin-field-label input,
+  .admin-availability,
+  .admin-save-button,
+  .admin-activity-row strong,
+  .admin-activity-row p,
+  .admin-activity-row time,
+  .admin-empty,
+  .admin-footer-note
+) {
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .admin-page .admin-demo-badge {
+    font-size: 0;
   }
 }

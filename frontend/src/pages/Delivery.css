@@ -731,3 +731,42 @@
     transition: none;
   }
 }
+
+.delivery-page :is(
+  .delivery-brand strong,
+  .delivery-brand small,
+  .delivery-nav-label,
+  .delivery-nav-link,
+  .delivery-sidebar-user strong,
+  .delivery-sidebar-user small,
+  .delivery-avatar-small,
+  .delivery-eyebrow,
+  .delivery-online,
+  .delivery-profile-identity p,
+  .delivery-profile-details small,
+  .delivery-profile-details strong,
+  .delivery-detail-icon,
+  .delivery-count,
+  .delivery-stat-card small,
+  .delivery-out-of,
+  .delivery-stat-note,
+  .delivery-order-number,
+  .delivery-status,
+  .delivery-customer small,
+  .delivery-customer strong,
+  .delivery-address small,
+  .delivery-address strong,
+  .delivery-address p,
+  .delivery-order-items > small,
+  .delivery-order-items li,
+  .delivery-order-total span,
+  .delivery-history-total,
+  .delivery-history-customer strong,
+  .delivery-history-customer small,
+  .delivery-history-date,
+  .delivery-history-price,
+  .delivery-delivered,
+  .delivery-demo-note
+) {
+  font-size: 14px;
+}
