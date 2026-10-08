@@ -111,11 +111,11 @@ export default function Login() {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '8px', color: '#4c1d95', fontWeight: '700', fontSize: '0.9rem' }}>
-              RUT:
+              RUT/USUARIO:
             </label>
             <input 
               type="text" 
-              placeholder="Ingresa tu RUT" 
+              placeholder="Ingresa tu RUT o Usuario" 
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               style={{ 
@@ -130,6 +130,9 @@ export default function Login() {
                 color: '#2e1065'
               }} 
             />
+            <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: '0.8rem' }}>
+              Si ingresas tu RUT, escríbelo sin puntos ni guion pero con dígito verificador (ej.: 123456789).
+            </p>
           </div>
 
           <div>
