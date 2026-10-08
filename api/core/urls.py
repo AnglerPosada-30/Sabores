@@ -32,4 +32,7 @@ urlpatterns = [
     path('api/catalogo/', include('catalogo.urls')), 
     path('api/finanzas/', include('finanzas.urls')),  
     path('api/usuarios/', include('usuarios.urls')), 
+
+    
+
 ]

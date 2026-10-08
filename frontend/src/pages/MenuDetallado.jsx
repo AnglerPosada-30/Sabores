@@ -106,6 +106,18 @@ export default function MenuDetallado() {
             </div>
           )}
 
+          {/* NUEVO BOTÓN: MIS PEDIDOS (Para rastrear en cualquier momento) */}
+          <Link 
+            to="/mis-pedidos"
+            style={{ 
+              backgroundColor: '#f3e8ff', color: '#6b21a8', padding: '8px 16px', 
+              borderRadius: '20px', fontSize: '0.9rem', fontWeight: '800', textDecoration: 'none',
+              display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' 
+            }}
+          >
+            🛵 <span>Mis Pedidos</span>
+          </Link>
+
           <button 
             onClick={() => setVerCarrito(true)}
             style={{ 

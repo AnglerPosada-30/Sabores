@@ -80,7 +80,7 @@ export default function AdminPanel() {
     try {
       const token = localStorage.getItem('access_token');
       // Asegúrate de que la ruta coincida con la que pusiste en tu urls.py de usuarios
-      const response = await fetch('http://localhost:8000/api/recargar-saldo/', {
+      const response = await fetch('http://localhost:8000/api/usuarios/abonar-saldo/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
