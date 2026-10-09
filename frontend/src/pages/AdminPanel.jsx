@@ -27,10 +27,15 @@ export default function AdminPanel() {
   const [guardando, setGuardando] = useState('');
   const [cargando, setCargando] = useState(true);
   
-  // NUEVOS ESTADOS: Para manejar el formulario de recarga de saldo
+  // Estados para formulario de recarga de saldo
   const [rutRecarga, setRutRecarga] = useState('');
   const [montoRecarga, setMontoRecarga] = useState('');
-  const [mensajeRecarga, setMensajeRecarga] = useState(null); // Guardará { tipo: 'exito' | 'error', texto: '...' }
+  const [mensajeRecarga, setMensajeRecarga] = useState(null);
+
+  // NUEVOS ESTADOS: Para formulario de cambio de rol
+  const [rutRol, setRutRol] = useState('');
+  const [nuevoRol, setNuevoRol] = useState('CLIENTE');
+  const [mensajeRol, setMensajeRol] = useState(null);
 
   const navigate = useNavigate();
 
@@ -50,7 +55,6 @@ export default function AdminPanel() {
         setPedidos(dataPedidos);
       }
 
-      // IMPORTANTE: Asegúrate de que esta URL sea la correcta (ayer le quitamos el /platos/ extra)
       const resPlatos = await fetch('http://localhost:8000/api/catalogo/', { headers });
       if (resPlatos.ok) {
         const dataPlatos = await resPlatos.json();
@@ -71,7 +75,7 @@ export default function AdminPanel() {
     ]);
   };
 
-  // 2. NUEVA FUNCIÓN: Conectar con la API para inyectar dinero al Cliente Corporativo
+  // 2. Conectar con la API para inyectar dinero al Cliente Corporativo
   const manejarRecargaSaldo = async (e) => {
     e.preventDefault();
     setGuardando('recarga');
@@ -79,7 +83,6 @@ export default function AdminPanel() {
 
     try {
       const token = localStorage.getItem('access_token');
-      // Asegúrate de que la ruta coincida con la que pusiste en tu urls.py de usuarios
       const response = await fetch('http://localhost:8000/api/usuarios/abonar-saldo/', {
         method: 'POST',
         headers: {
@@ -96,7 +99,7 @@ export default function AdminPanel() {
 
       if (response.ok) {
         setMensajeRecarga({ tipo: 'exito', texto: data.mensaje });
-        setRutRecarga(''); // Limpiamos el formulario
+        setRutRecarga('');
         setMontoRecarga('');
         registrarCambio(`Inyección de fondos: $${montoRecarga} al RUT ${rutRecarga}`);
       } else {
@@ -109,7 +112,44 @@ export default function AdminPanel() {
     }
   };
 
-  // 3. Actualizar Inventario en Django
+  // 3. NUEVA FUNCIÓN: Conectar con la API para cambiar el rol de un usuario
+  const manejarCambioRol = async (e) => {
+    e.preventDefault();
+    setGuardando('rol');
+    setMensajeRol(null);
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/api/usuarios/cambiar-rol/', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          rut: rutRol, 
+          rol: nuevoRol 
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMensajeRol({ tipo: 'exito', texto: data.mensaje });
+        setRutRol('');
+        setNuevoRol('CLIENTE');
+        registrarCambio(`Actualizó rol del usuario RUT ${rutRol} a ${nuevoRol}`);
+      } else {
+        setMensajeRol({ tipo: 'error', texto: data.error || 'Error al actualizar el rol.' });
+      }
+    } catch (error) {
+      setMensajeRol({ tipo: 'error', texto: 'No se pudo conectar con el servidor.' });
+    } finally {
+      setGuardando('');
+    }
+  };
+
+  // 4. Actualizar Inventario en Django
   const actualizarPlato = async (event, plato) => {
     event.preventDefault();
     const valores = new FormData(event.currentTarget);
@@ -148,7 +188,7 @@ export default function AdminPanel() {
     }
   };
 
-  // 4. Actualizar Estado de Pedido en Django
+  // 5. Actualizar Estado de Pedido en Django
   const actualizarPedido = async (pedido, nuevoEstado) => {
     let motivo = '';
     if (nuevoEstado === 'CANCELADO') {
@@ -211,6 +251,7 @@ export default function AdminPanel() {
         <nav className="admin-nav" aria-label="Navegación de administración">
           <a className="admin-nav-link is-active" href="#resumen"><span aria-hidden="true">▦</span> Resumen</a>
           <a className="admin-nav-link" href="#finanzas"><span aria-hidden="true">💰</span> Finanzas B2B</a>
+          <a className="admin-nav-link" href="#roles"><span aria-hidden="true">👥</span> Gestión de Roles</a>
           <a className="admin-nav-link" href="#pedidos"><span aria-hidden="true">▤</span> Pedidos</a>
           <a className="admin-nav-link" href="#inventario"><span aria-hidden="true">◈</span> Precios y stock</a>
           <a className="admin-nav-link" href="#auditoria"><span aria-hidden="true">↻</span> Actividad</a>
@@ -238,7 +279,7 @@ export default function AdminPanel() {
           <div className="admin-welcome">
             <div>
               <h2>Hola, administrador <span aria-hidden="true">✦</span></h2>
-              <p>Supervisa los pedidos, inyecta fondos y controla el menú en tiempo real.</p>
+              <p>Supervisa los pedidos, gestiona roles y controla el menú en tiempo real.</p>
             </div>
             <span className="admin-date">{new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
           </div>
@@ -258,7 +299,7 @@ export default function AdminPanel() {
             </article>
           </section>
 
-          {/* NUEVA SECCIÓN: BILLETERA CORPORATIVA */}
+          {/* SECCIÓN: BILLETERA CORPORATIVA */}
           <section id="finanzas" className="admin-section">
             <div className="admin-section-heading">
               <div><p className="admin-eyebrow">CONVENIOS</p><h2>Recargar Billetera Corporativa</h2></div>
@@ -301,7 +342,6 @@ export default function AdminPanel() {
                 </button>
               </form>
 
-              {/* Mensajes de feedback (Éxito o Error) */}
               {mensajeRecarga && (
                 <div style={{ marginTop: '20px', padding: '12px', borderRadius: '6px', backgroundColor: mensajeRecarga.tipo === 'exito' ? '#ecfdf5' : '#fef2f2', border: `1px solid ${mensajeRecarga.tipo === 'exito' ? '#a7f3d0' : '#fecaca'}`, color: mensajeRecarga.tipo === 'exito' ? '#065f46' : '#991b1b', fontWeight: '500', fontSize: '0.9rem' }}>
                   {mensajeRecarga.tipo === 'exito' ? '✅ ' : '⚠️ '} {mensajeRecarga.texto}
@@ -310,6 +350,59 @@ export default function AdminPanel() {
             </div>
           </section>
 
+          {/* NUEVA SECCIÓN: GESTIÓN DE ROLES (RBAC) */}
+          <section id="roles" className="admin-section">
+            <div className="admin-section-heading">
+              <div><p className="admin-eyebrow">CONTROL DE ACCESO (RBAC)</p><h2>Modificar Rol de Usuario</h2></div>
+            </div>
+            <div style={{ background: '#ffffff', padding: '25px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+              <p style={{ color: '#4b5563', marginBottom: '20px', fontSize: '0.95rem' }}>
+                Ingresa el RUT del usuario para actualizar sus privilegios en la plataforma (Cliente, Repartidor, etc.).
+              </p>
+              
+              <form onSubmit={manejarCambioRol} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>RUT del Usuario</label>
+                  <input 
+                    type="text" 
+                    value={rutRol} 
+                    onChange={(e) => setRutRol(e.target.value)}
+                    placeholder="Ej: 12345678-9" 
+                    required
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Nuevo Rol</label>
+                  <select 
+                    value={nuevoRol} 
+                    onChange={(e) => setNuevoRol(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', outline: 'none', backgroundColor: '#ffffff', height: '42px' }}
+                  >
+                    <option value="CLIENTE">Cliente Regular</option>
+                    <option value="CLIENTE_CORP">Cliente Corporativo</option>
+                    <option value="REPARTIDOR">Repartidor</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={guardando === 'rol'}
+                  style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700', cursor: guardando === 'rol' ? 'not-allowed' : 'pointer', height: '42px' }}
+                >
+                  {guardando === 'rol' ? 'Actualizando...' : '👤 Actualizar Rol'}
+                </button>
+              </form>
+
+              {mensajeRol && (
+                <div style={{ marginTop: '20px', padding: '12px', borderRadius: '6px', backgroundColor: mensajeRol.tipo === 'exito' ? '#ecfdf5' : '#fef2f2', border: `1px solid ${mensajeRol.tipo === 'exito' ? '#a7f3d0' : '#fecaca'}`, color: mensajeRol.tipo === 'exito' ? '#065f46' : '#991b1b', fontWeight: '500', fontSize: '0.9rem' }}>
+                  {mensajeRol.tipo === 'exito' ? '✅ ' : '⚠️ '} {mensajeRol.texto}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* GESTIÓN DE PEDIDOS */}
           <section id="pedidos" className="admin-section">
             <div className="admin-section-heading">
               <div><p className="admin-eyebrow">OPERACIONES</p><h2>Gestión de pedidos</h2></div>
@@ -371,6 +464,7 @@ export default function AdminPanel() {
             </div>
           </section>
 
+          {/* MENÚ E INVENTARIO */}
           <section id="inventario" className="admin-section">
             <div className="admin-section-heading">
               <div><p className="admin-eyebrow">MENÚ E INVENTARIO</p><h2>Precios y stock</h2></div>
@@ -405,6 +499,7 @@ export default function AdminPanel() {
             </div>
           </section>
 
+          {/* AUDITORÍA Y TRAZABILIDAD */}
           <section id="auditoria" className="admin-section">
             <div className="admin-section-heading">
               <div><p className="admin-eyebrow">TRAZABILIDAD</p><h2>Actividad reciente</h2></div>

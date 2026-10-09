@@ -109,3 +109,41 @@ class RecargarSaldoCorporativoView(APIView):
             return Response({"error": "No se encontró ningún Cliente Corporativo con ese RUT en el sistema."}, status=status.HTTP_404_NOT_FOUND)
         except ValueError:
             return Response({"error": "El formato del monto no es válido. Debe ser numérico."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class CambiarRolUsuarioView(APIView):
+    """
+    Endpoint administrativo para actualizar el RBAC de cualquier usuario.
+    """
+    def patch(self, request):
+        # 1. Seguridad estricta: Solo administradores
+        if not (request.user.is_staff or request.user.is_superuser or getattr(request.user, 'rol', '') == 'ADMIN'):
+            return Response({"error": "No tienes permisos de administrador."}, status=status.HTTP_403_FORBIDDEN)
+
+        rut_usuario = request.data.get('rut')
+        nuevo_rol = request.data.get('rol')
+
+        # 2. Validamos que el rol esté dentro de las opciones permitidas
+        roles_validos = ['CLIENTE', 'CLIENTE_CORP', 'REPARTIDOR', 'ADMIN']
+        if nuevo_rol not in roles_validos:
+            return Response({"error": f"Rol no válido. Opciones permitidas: {roles_validos}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 3. Buscamos al usuario por su RUT
+            usuario_objetivo = Usuario.objects.get(rut=rut_usuario)
+            
+            # 4. Actualizamos y guardamos
+            usuario_objetivo.rol = nuevo_rol
+            usuario_objetivo.save()
+
+            # CORRECCIÓN AQUÍ: La variable correcta es usuario_objetivo
+            nombre_mostrar = usuario_objetivo.first_name or usuario_objetivo.username
+            return Response({
+                "mensaje": f"El rol de {nombre_mostrar} ha sido actualizado a {nuevo_rol} exitosamente."
+            }, status=status.HTTP_200_OK)
+
+        except Usuario.DoesNotExist:
+            return Response({"error": "No se encontró ningún usuario con ese RUT en el sistema."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            # Si ocurre cualquier otro error, lo mostramos en lugar de crashear con un 500 en silencio
+            return Response({"error": f"Error interno: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
